@@ -1,7 +1,12 @@
 # CS130 winter 2017
 
-## Assignment 2
+## Echo server, using boost.
 
-Echo server, using boost.
+*to build the webserver*
+`$ make webserver`
 
-test readme
+*to run*
+`$ sudo ./webserver example_config`
+
+*clean up*
+`make clean`
