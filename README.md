@@ -10,3 +10,9 @@
 
 *clean up*
 `make clean`
+
+*unit test for config parser* (add sudo if not write permission)
+```
+$ make config_parser_test
+$ ./config_parser_test
+```

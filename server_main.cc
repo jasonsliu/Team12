@@ -1,32 +1,31 @@
-//
-// blocking_tcp_echo_server.cpp
-// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+// Copied from https://github.com/dkawashima/CS-3-Boost-Echo-Static-Server/blob/dkawashi-nginx/
 //
 // Copyright (c) 2003-2012 Christopher M. Kohlhoff (chris at kohlhoff dot com)
 //
 // Distributed under the Boost Software License, Version 1.0. (See accompanying
 // file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
 //
-#include "config_parser.cc"
+
+#include "config_parser.h"
 #include <cstdlib>
 #include <iostream>
-#include <boost/bind.hpp>
+//#include <boost/bind.hpp>
 #include <boost/smart_ptr.hpp>
 #include <boost/asio.hpp>
-#include <boost/thread.hpp>
+//#include <boost/thread.hpp>
 #include <thread>
 #include <utility>
-using namespace std; 
+#include <string>
 
 
 using boost::asio::ip::tcp;
-
-const int max_length = 1024;
 
 typedef boost::shared_ptr<tcp::socket> socket_ptr;
 
 void session(socket_ptr sock)
 {
+  const int max_length = 1024;
+
   try
   {
     for (;;)
@@ -39,8 +38,14 @@ void session(socket_ptr sock)
       else if (error)
         throw boost::system::system_error(error); // Some other error.
 		  
+      // simple http response
+      // TODO: make more sophisticated http request handles (for later project).
+      const char* httpResponseHeader = "HTTP/1.1 200 OK\r\nContent-Type: text/plain\r\n\r\n";
+      boost::asio::write(*sock, boost::asio::buffer(httpResponseHeader, strlen(httpResponseHeader)));
+
       boost::asio::write(*sock, boost::asio::buffer(data, length));
-      break;
+      
+      return;;
     }
 
   }
@@ -53,21 +58,21 @@ void session(socket_ptr sock)
 void server(boost::asio::io_service& io_service, short port)
 {
   tcp::acceptor a(io_service, tcp::endpoint(tcp::v4(), port));
+
+  // Reuse port (server useually )
+  // TODO: Implement catch signal to cleanly shut down server
+  // http://stackoverflow.com/questions/6364681/how-to-handle-control-c-in-a-boost-tcp-udp-server
+  a.set_option(tcp::acceptor::reuse_address(true));
+
+  std::cout << "Listening on port " << port << "\n";
   for (;;)
   {
-    /*
-    boost::asio::basic_streambuf buffer;
-    boost::asio::read_until(buffer, request, "\n");
-    */
     socket_ptr sock(new tcp::socket(io_service));
     a.accept(*sock);
     
+    // use std thread for non-blocking.
     std::thread t(session, std::move(sock));
     t.detach();
-    //socket_ptr sock1 = std::move(sock);
-    //session(std::move(sock));
-    //std::thread t(boost::bind(session, sock));
-    //boost::bind(session, sock);
   }
 }
 
@@ -75,7 +80,13 @@ void server(boost::asio::io_service& io_service, short port)
 static int getPort(const NginxConfig &config) { // Gets port from config_file
   for (const auto& statement : config.statements_) {
     bool kl = true;
+
+    //DEBUG: print statement
+    std::cout << "DEBUG: statement\n";
     for (const std::string& token : statement->tokens_) {
+
+      // DEBUG: print all tokens
+      std::cout << "DEBUG:" << token << std::endl;
       if (!kl) {
         try { return stoi(token); } catch (...) {}
       }
@@ -85,10 +96,9 @@ static int getPort(const NginxConfig &config) { // Gets port from config_file
   return -1;
 }
 
-
-
 int main(int argc, char* argv[])
 {
+  using namespace std; 
   try
   {
     if (argc != 2)
@@ -96,14 +106,18 @@ int main(int argc, char* argv[])
       std::cerr << "Usage: webserver <config_file>\n";      
       return 1;
     }
-    /* copied from yichi server.main lines 17 to 21 */
+
+    /* 
+      copied from yichi server.main lines 17 to 21 
+      parse server configuration
+    */
     NginxConfigParser config_parser;
     NginxConfig config;
     if (!config_parser.Parse(argv[1], &config)) {
       return -1;
     }
+
     int port_ = getPort(config);
-    std::cout << port_ << "\n";
     boost::asio::io_service io;
     server(io, port_);
   }
