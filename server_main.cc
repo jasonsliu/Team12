@@ -8,21 +8,21 @@
 #include "config_parser.h"
 #include <cstdlib>
 #include <iostream>
-#include <boost/bind.hpp>
+//#include <boost/bind.hpp>
 #include <boost/smart_ptr.hpp>
 #include <boost/asio.hpp>
-#include <boost/thread.hpp>
+//#include <boost/thread.hpp>
 #include <thread>
 #include <utility>
 
 using boost::asio::ip::tcp;
 
-const int max_length = 1024; //why fixed length?
-
 typedef boost::shared_ptr<tcp::socket> socket_ptr;
 
 void session(socket_ptr sock)
 {
+  const int max_length = 1024;
+
   try
   {
     for (;;)
@@ -54,22 +54,16 @@ void server(boost::asio::io_service& io_service, short port)
   // TODO: Implement catch signal to cleanly shut down server
   // http://stackoverflow.com/questions/6364681/how-to-handle-control-c-in-a-boost-tcp-udp-server
   a.set_option(tcp::acceptor::reuse_address(true));
-  
+
+  std::cout << "Listening on port " << port << "\n";
   for (;;)
   {
-    /*
-    boost::asio::basic_streambuf buffer;
-    boost::asio::read_until(buffer, request, "\n");
-    */
     socket_ptr sock(new tcp::socket(io_service));
     a.accept(*sock);
     
+    // use std thread for non-blocking.
     std::thread t(session, std::move(sock));
     t.detach();
-    //socket_ptr sock1 = std::move(sock);
-    //session(std::move(sock));
-    //std::thread t(boost::bind(session, sock));
-    //boost::bind(session, sock);
   }
 }
 
@@ -103,14 +97,18 @@ int main(int argc, char* argv[])
       std::cerr << "Usage: webserver <config_file>\n";      
       return 1;
     }
-    /* copied from yichi server.main lines 17 to 21 */
+
+    /* 
+      copied from yichi server.main lines 17 to 21 
+      parse server configuration
+    */
     NginxConfigParser config_parser;
     NginxConfig config;
     if (!config_parser.Parse(argv[1], &config)) {
       return -1;
     }
+
     int port_ = getPort(config);
-    std::cout << port_ << "\n";
     boost::asio::io_service io;
     server(io, port_);
   }
