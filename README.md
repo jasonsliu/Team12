@@ -2,16 +2,16 @@
 
 ## Echo server, using boost.
 
-+*to build the webserver*
++ *to build the webserver*
 `$ make webserver`
 
-+*to run*
++ *to run*
 `$ sudo ./webserver example_config`
 
-+*clean up*
++ *clean up*
 `make clean`
 
-+*unit test for config parser* (add sudo if not write permission)
++ *unit test for config parser* (add sudo if not write permission)
 ```
 $ make config_parser_test
 $ ./config_parser_test
