@@ -35,6 +35,11 @@ void session(socket_ptr sock)
       else if (error)
         throw boost::system::system_error(error); // Some other error.
 		  
+      // simple http response
+      // TODO: make more sophisticated http request handles (for later project).
+      const char* httpResponseHeader = "HTTP/1.1 200 OK\r\nContent-Type: text/plain\r\n\r\n";
+      boost::asio::write(*sock, boost::asio::buffer(httpResponseHeader, strlen(httpResponseHeader)));
+
       boost::asio::write(*sock, boost::asio::buffer(data, length));
       break;
     }
