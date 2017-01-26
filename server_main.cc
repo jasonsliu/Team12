@@ -49,6 +49,12 @@ void session(socket_ptr sock)
 void server(boost::asio::io_service& io_service, short port)
 {
   tcp::acceptor a(io_service, tcp::endpoint(tcp::v4(), port));
+
+  // Reuse port (server useually )
+  // TODO: Implement catch signal to cleanly shut down server
+  // http://stackoverflow.com/questions/6364681/how-to-handle-control-c-in-a-boost-tcp-udp-server
+  a.set_option(tcp::acceptor::reuse_address(true));
+  
   for (;;)
   {
     /*
