@@ -1,5 +1,3 @@
-// An nginx config file parser.
-
 #include <iostream>
 #include <memory>
 #include <string>

@@ -5,6 +5,7 @@
 // Distributed under the Boost Software License, Version 1.0. (See accompanying
 // file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
 //
+
 #include "config_parser.h"
 #include <cstdlib>
 #include <iostream>
@@ -14,10 +15,12 @@
 #include <boost/thread.hpp>
 #include <thread>
 #include <utility>
+#include <string>
+
 
 using boost::asio::ip::tcp;
 
-const int max_length = 1024; //why fixed length?
+const int max_length = 4096; //why fixed length?
 
 typedef boost::shared_ptr<tcp::socket> socket_ptr;
 
@@ -35,8 +38,17 @@ void session(socket_ptr sock)
       else if (error)
         throw boost::system::system_error(error); // Some other error.
 		  
+      //Hard-coded HTTP response for now
+      const char* http_header = "HTTP/1.1 200 OK \r\nContent-Type: text/plain\r\n";
+      const char* stupid_resp = "ECHOOOOOOOOOO";
+      int header_len = std::strlen(http_header);
+      int resp_len = std::strlen(stupid_resp);
+
       boost::asio::write(*sock, boost::asio::buffer(data, length));
-      break;
+      boost::asio::write(*sock, boost::asio::buffer(http_header, header_len));
+      boost::asio::write(*sock, boost::asio::buffer(stupid_resp, resp_len));
+
+      return;;
     }
 
   }
