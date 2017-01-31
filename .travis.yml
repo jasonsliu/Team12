@@ -3,4 +3,4 @@ script: make test
 addons:
   apt:
      packages:
-	- libboost-all-dev
+	     - libboost-all-dev
