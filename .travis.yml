@@ -1,6 +1,6 @@
 language: cpp
-script: make test
+script: CHANGE_ME
 addons:
-  apt:
-     packages:
-	     - libboost-all-dev
+ apt:
+   packages:
+   - libboost-all-dev
