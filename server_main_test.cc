@@ -34,6 +34,7 @@ TEST_F(NginxConfigParserTest, NestedGetPort){
   std::stringstream config_stream(config_string);
   EXPECT_FALSE(parser.Parse(&config_stream, &out_config));
   int port = getPort(out_config);
+  bool success;
   if(port == 8070)
   {
 		success = true;
