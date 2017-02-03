@@ -1,5 +1,5 @@
 #include "gtest/gtest.h"
-#include "server_main.cc"
+#include "server.h"
 
 
 class NginxConfigParserTest : public ::testing::Test {
@@ -7,7 +7,6 @@ class NginxConfigParserTest : public ::testing::Test {
     NginxConfigParser parser;
     NginxConfig out_config;
 };
-
 
 
 TEST(NginxServerTest, GetPort){
@@ -19,14 +18,11 @@ TEST(NginxServerTest, GetPort){
 	if(port == 8080){
 		success = true;
 	}else{
-		success == false;
+		success = false;
 	}
 
 	EXPECT_TRUE(success) << "getPort function does not parse out port properly";
 }
-
-
-//TEST(NginxConfigParserTest, )
 
 
 TEST_F(NginxConfigParserTest, NestedGetPort){
@@ -34,15 +30,14 @@ TEST_F(NginxConfigParserTest, NestedGetPort){
   std::stringstream config_stream(config_string);
   EXPECT_FALSE(parser.Parse(&config_stream, &out_config));
   int port = getPort(out_config);
+  bool success;
   if(port == 8070)
   {
 		success = true;
   }
   else
   {
-		success == false;
+		success = false;
   }
   EXPECT_TRUE(success) << "getPort function does not parse out port properly";
 }
-
-
