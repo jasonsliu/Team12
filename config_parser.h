@@ -1,3 +1,6 @@
+#ifndef CONFIG_PARSER
+#define CONFIG_PARSER
+
 #include <iostream>
 #include <memory>
 #include <string>
@@ -54,3 +57,5 @@ class NginxConfigParser {
 
   TokenType ParseToken(std::istream* input, std::string* value);
 };
+
+#endif

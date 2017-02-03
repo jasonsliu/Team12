@@ -1,4 +1,6 @@
 # intermediate files
 *.o
 *.a
-
+webserver
+config_parser_test
+server_tests
