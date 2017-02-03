@@ -11,8 +11,12 @@
 + *clean up*
 `make clean`
 
-+ *unit test for config parser* (add sudo if not write permission)
++ *run unit tests* (add sudo if not write permission)
 ```
-$ make config_parser_test
-$ ./config_parser_test
+$ make run_all_tests
+```
+
++ *run test coverage (gcov)* (depends on success of `$ make run_all_tests`)
+```
+$ make run_test_coverage
 ```
