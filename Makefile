@@ -9,7 +9,7 @@ compile_webserver:
 	g++ $(CFLAGS) server_main.cc server.cc config_parser.cc -o webserver -pthread -lboost_system
 
 compile_gtest:
-# make googletest 
+# make googletest, NOT use variable CFLAGS to aviod redundant files
 	g++ $(CFLAGS) -isystem ${GTEST_DIR}/include -I${GTEST_DIR} -pthread -c ${GTEST_DIR}/src/gtest-all.cc
 	ar -rv libgtest.a gtest-all.o
 
@@ -22,14 +22,19 @@ compile_parser_test: compile_gtest
 compile_server_test: compile_gtest
 	g++ $(CFLAGS) -isystem ${GTEST_DIR}/include -pthread server_test.cc server.cc config_parser.cc ${GTEST_DIR}/src/gtest_main.cc libgtest.a -o server_tests -lboost_system -lpthread
 
-run_all_tests: compile_parser_test compile_server_test
+compile_all_tests: compile_parser_test compile_server_test
+
+compile_all_tests_with_coverage:  CFLAGS += -fprofile-arcs -ftest-coverage
+compile_all_tests_with_coverage: compile_all_tests
+
+run_all_tests: compile_all_tests_with_coverage
 	./config_parser_test
 	./server_tests
 
-run_test_coverage: CFLAGS += -fprofile-arcs -ftest-coverage
-run_test_coverage: compile_parser_test compile_server_test
-	./config_parser_test gcov -r config_parser.cc
-	./server_tests gcov -r server.cc
+run_test_coverage:
+# add dependency to run_all_tests when all tests pass
+	gcov -r config_parser.cc
+	gcov -r server.cc
 
 clean:
 # use -f to ignore non-existent files
