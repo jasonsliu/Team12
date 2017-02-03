@@ -31,10 +31,10 @@ User-Agent: Python-urllib/2.7\r\n\r\nthis is a test request message"""
 response_msg = str(response.read())
 response_headers = str(response.info())
 response_code = response.getcode()
-#print (response_code)
-#print (response_headers)
-#print (expected_headers)
-#print (response_msg)
+# print (response_code)
+# print (response_headers)
+# print (expected_headers)
+# print (response_msg)
 
 
 
@@ -60,15 +60,3 @@ else:
   #  kill the server process
   os.killpg(os.getpgid(server_process.pid), signal.SIGTERM)
   exit(0)
-
-
-
-
-
-
-
-
-
-
-
-
