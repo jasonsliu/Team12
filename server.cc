@@ -8,6 +8,7 @@
 
 #include "server.h"
 
+
 void session(socket_ptr sock)
 {
   const int max_length = 1024;
@@ -31,7 +32,7 @@ void session(socket_ptr sock)
 
       boost::asio::write(*sock, boost::asio::buffer(data, length));
       
-      return;;
+      return;
     }
 
   }
@@ -40,6 +41,7 @@ void session(socket_ptr sock)
     std::cerr << "Exception in thread: " << e.what() << "\n";
   }
 }
+
 
 void server(boost::asio::io_service& io_service, short port)
 {
@@ -62,17 +64,18 @@ void server(boost::asio::io_service& io_service, short port)
   }
 }
 
-/* copied from yichi example lines 3-14 */
+
 int getPort(const NginxConfig &config) { // Gets port from config_file
   for (const auto& statement : config.statements_) {
     bool kl = true;
 
-    //DEBUG: print statement
-    std::cout << "DEBUG: statement\n";
     for (const std::string& token : statement->tokens_) {
-
-      // DEBUG: print all tokens
-      std::cout << "DEBUG:" << token << std::endl;
+      std::cout << ">>>>>>>>>>>DEBUG" << token << std::endl;
+      if (token == "server"){
+        return getPort(*statement->child_block_.get());
+      }
+      
+      std::cout << ">>>>>>>>>>>DEBUG" << kl << std::endl;
       if (!kl) {
         try { return stoi(token); } catch (...) {}
       }

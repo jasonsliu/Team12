@@ -2,42 +2,24 @@
 #include "server.h"
 
 
-class NginxConfigParserTest : public ::testing::Test {
+class ServerTest : public ::testing::Test {
   protected:
     NginxConfigParser parser;
     NginxConfig out_config;
 };
 
 
-TEST(NginxServerTest, GetPort){
-	NginxConfigParser parser;
-	NginxConfig out_config;
+TEST_F(ServerTest, getPort_from_config_file){
 	parser.Parse("example_config", &out_config);
 	int port = getPort(out_config);
-	bool success;
-	if(port == 8080){
-		success = true;
-	}else{
-		success = false;
-	}
-
-	EXPECT_TRUE(success) << "getPort function does not parse out port properly";
+	EXPECT_TRUE(port == 8080) << "MESSAGE: getPort got " << port<< std::endl;
 }
 
 
-TEST_F(NginxConfigParserTest, NestedGetPort){
+TEST_F(ServerTest, getPort_from_server_block){
   std::string config_string = "server { listen 8070 ; }";
   std::stringstream config_stream(config_string);
-  EXPECT_FALSE(parser.Parse(&config_stream, &out_config));
+  parser.Parse(&config_stream, &out_config);
   int port = getPort(out_config);
-  bool success;
-  if(port == 8070)
-  {
-		success = true;
-  }
-  else
-  {
-		success = false;
-  }
-  EXPECT_TRUE(success) << "getPort function does not parse out port properly";
+  EXPECT_TRUE(port == 8070) << "MESSAGE: getPort got " << port << std::endl;
 }

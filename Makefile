@@ -31,8 +31,8 @@ run_all_tests: compile_all_tests_with_coverage
 	./config_parser_test
 	./server_tests
 
-run_test_coverage:
-# add dependency to run_all_tests when all tests pass
+run_test_coverage: run_all_tests
+# add dependency to run_all_tests only when all tests pass
 	gcov -r config_parser.cc
 	gcov -r server.cc
 

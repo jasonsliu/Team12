@@ -1,5 +1,5 @@
 language: cpp
-script: make run_test_coverage
+script: make run_all_tests
 addons:
  apt:
    packages:
