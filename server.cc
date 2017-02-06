@@ -8,8 +8,12 @@
 
 #include "server.h"
 
+Server::Server(int p)
+{
+  port = p;
+}
 
-void session(socket_ptr sock)
+void Server::session(socket_ptr sock)
 {
   const int max_length = 1024;
 
@@ -43,7 +47,7 @@ void session(socket_ptr sock)
 }
 
 
-void server(boost::asio::io_service& io_service, short port)
+void Server::run_server(boost::asio::io_service& io_service)
 {
   tcp::acceptor a(io_service, tcp::endpoint(tcp::v4(), port));
 
@@ -59,28 +63,8 @@ void server(boost::asio::io_service& io_service, short port)
     a.accept(*sock);
     
     // use std thread for non-blocking.
-    std::thread t(session, std::move(sock));
+    std::thread t(&Server::session, this, std::move(sock));
     t.detach();
   }
 }
 
-
-int getPort(const NginxConfig &config) { // Gets port from config_file
-  for (const auto& statement : config.statements_) {
-    bool kl = true;
-
-    for (const std::string& token : statement->tokens_) {
-      std::cout << ">>>>>>>>>>>DEBUG" << token << std::endl;
-      if (token == "server"){
-        return getPort(*statement->child_block_.get());
-      }
-      
-      std::cout << ">>>>>>>>>>>DEBUG" << kl << std::endl;
-      if (!kl) {
-        try { return stoi(token); } catch (...) {}
-      }
-      kl = (token != "listen");
-    }
-  }
-  return -1;
-}
