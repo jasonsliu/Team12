@@ -36,6 +36,9 @@ run_test_coverage: run_all_tests
 	gcov -r config_parser.cc
 	gcov -r server.cc
 
+run_integration_test: compile_webserver
+	python integration_test.py
+
 clean:
 # use -f to ignore non-existent files
 	rm -rf webserver server_tests config_parser config_parser_test server_tests *.o *.a *~ *.gcov *.gcda *.gcno 
