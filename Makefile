@@ -35,7 +35,8 @@ run_test_coverage: run_all_tests
 # add dependency to run_all_tests only when all tests pass
 	gcov -r config_parser.cc
 	gcov -r server.cc
-
+	gcov -r server_test.cc
+	
 clean:
 # use -f to ignore non-existent files
 	rm -rf webserver server_tests config_parser config_parser_test server_tests *.o *.a *~ *.gcov *.gcda *.gcno 
