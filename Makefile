@@ -35,6 +35,9 @@ run_test_coverage: run_all_tests
 # add dependency to run_all_tests only when all tests pass
 	gcov -r config_parser.cc
 	gcov -r server.cc
+	gcov -r server_test.cc
+	
+
 
 run_integration_test: compile_webserver
 	python integration_test.py
