@@ -1,5 +1,5 @@
-#ifndef SERVERH
-#define SERVERH
+#ifndef SERVER_H
+#define SERVER_H
 
 // Copied from https://github.com/dkawashima/CS-3-Boost-Echo-Static-Server/blob/dkawashi-nginx/
 //
@@ -25,11 +25,24 @@ using boost::asio::ip::tcp;
 
 typedef boost::shared_ptr<tcp::socket> socket_ptr;
 
-void session(socket_ptr sock);
 
-void server(boost::asio::io_service& io_service, short port);
 
-/* copied from yichi example lines 3-14 */
-int getPort(const NginxConfig &config);
+class Server{
+public:
+	void run_server(boost::asio::io_service& io_service);
+	/* copied from yichi example lines 3-14 */
+	void session(socket_ptr sock);
+	Server(int p);
+private:
+	unsigned short port;
+
+};
+
+
+
+
 
 #endif
+
+
+
