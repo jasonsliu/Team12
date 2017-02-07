@@ -20,3 +20,8 @@ $ make run_all_tests
 ```
 $ make run_test_coverage
 ```
+
++ *run integration test* 
+```
+$ make run_integration_test
+```
