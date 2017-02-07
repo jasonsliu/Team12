@@ -1,0 +1,57 @@
+#ifndef CONSTANTS
+#define CONSTANTS
+
+
+//copied from Chang Liu's cs118 project 1
+//REQUEST TYPE
+enum Http_method
+{
+	GET, 
+	HEAD, 
+	POST, 
+	PUT, 
+	TRACE, 
+	CONNECT, 
+	OPTION
+};
+
+enum Http_status
+{
+	//Informational
+	CONTINUE=100,
+	SWITCHING,
+
+	//Success
+	OK=200,
+	CREATED,
+	ACCEPTED,
+	NO_CONTENT=204,
+
+	//Redirection
+	MOVED_PERMANENTLY=301,
+	MOVED_TEMPORARILY,
+	NOT_MODIFIED=304,
+
+	//Client Error
+	BAD_REQUEST=400,
+	UNAUTHORIZED,
+	FORBIDDEN=403,
+	NOT_FOUND,
+	METHOD_NOT_ALLOWED,
+	NOT_ACCEPTABLE,
+
+	//Server Error
+	INTERNAL_SERVER_ERROR=500,
+	NOT_IMPLEMENTED,
+	SERVICE_UNAVAILABLE=503
+};
+
+enum Service_type
+{
+	ECHO_SERVICE,
+	STATIC_SERVICE,
+	INVALID_SERVICE
+};
+
+
+#endif
