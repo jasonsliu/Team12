@@ -8,6 +8,7 @@
 
 #include "server.h"
 #include "Request.h"
+#include "Response.h"
 #include "Constants.h"
 
 Server::Server(int p)
@@ -36,15 +37,16 @@ void Server::session(socket_ptr sock)
       Request req(data);
       //parse the request message
       req.parse_request();
+
       if(req.get_type()==INVALID_SERVICE)
       {
         //TODO !!!!!!!!!!!!!!!!!!
       }
       else if(req.get_type()==ECHO_SERVICE)
       {
-        const char* httpResponseHeader = "HTTP/1.1 200 OK\r\nContent-Type: text/plain\r\n\r\n";
-        boost::asio::write(*sock, boost::asio::buffer(httpResponseHeader, strlen(httpResponseHeader)));
-        boost::asio::write(*sock, boost::asio::buffer(data, length));
+        EchoResponse echo_response(data);
+        echo_response.generate_response_msg();
+        echo_response.send(sock);
       }
       else
       {
@@ -81,4 +83,16 @@ void Server::run_server(boost::asio::io_service& io_service)
     t.detach();
   }
 }
+
+
+
+
+
+
+
+
+
+
+
+
 
