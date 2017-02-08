@@ -7,7 +7,7 @@ CFLAGS = -std=c++0x -Wall -g
 compile_webserver:
 # use -pthread to enable multithreading.
 # need to link -lboost_system last.
-	g++ $(CFLAGS) server_main.cc server.cc config_parser.cc Request.cc -o webserver -pthread -lboost_system
+	g++ $(CFLAGS) server_main.cc server.cc config_parser.cc Request.cc Response.cc -o webserver -pthread -lboost_system
 
 
 compile_gtest:

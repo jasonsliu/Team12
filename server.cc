@@ -8,6 +8,7 @@
 
 #include "server.h"
 #include "Request.h"
+#include "Response.h"
 #include "Constants.h"
 
 Server::Server(int p)
@@ -36,19 +37,28 @@ void Server::session(socket_ptr sock)
       Request req(data);
       //parse the request message
       req.parse_request();
+
       if(req.get_type()==INVALID_SERVICE)
       {
-        //TODO !!!!!!!!!!!!!!!!!!
+        const char * response_msg;
+        response_msg =  "HTTP/1.0 404 Not Found\r\n"
+              "Content-type: text/html\r\n"
+              "Content-length: 80\r\n\r\n"
+              "<html><body><h1>404 Can not file what you are looking for :(</h1></body></html>";
+  
+         boost::asio::write(*sock, boost::asio::buffer(response_msg, strlen(response_msg)));
       }
       else if(req.get_type()==ECHO_SERVICE)
       {
-        const char* httpResponseHeader = "HTTP/1.1 200 OK\r\nContent-Type: text/plain\r\n\r\n";
-        boost::asio::write(*sock, boost::asio::buffer(httpResponseHeader, strlen(httpResponseHeader)));
-        boost::asio::write(*sock, boost::asio::buffer(data, length));
+        EchoResponse echo_response(data);
+        echo_response.generate_response_msg();
+        echo_response.send(sock);
       }
       else
       {
-         //TODO !!!!!!!!!!!!!!!
+         StaticResponse static_response(req.get_file());
+         static_response.generate_response_msg();
+         static_response.send(sock);
       }      
       return;
     }
@@ -81,4 +91,16 @@ void Server::run_server(boost::asio::io_service& io_service)
     t.detach();
   }
 }
+
+
+
+
+
+
+
+
+
+
+
+
 
