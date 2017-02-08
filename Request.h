@@ -11,7 +11,6 @@ class Request
 {
 public:
 	Request(const char *r);
-	void parse_request();
 
 	std::string get_url(){return m_url;}
 	Service_type get_type (){return m_type;}
@@ -23,6 +22,8 @@ public:
 	void set_method(std::string method);
 	void set_type(Service_type type);
 private:
+	void parse_request();
+
 	// The actual request message
 	std::string m_req_msg;	
 	// type can either be echo or file 

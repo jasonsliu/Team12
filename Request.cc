@@ -5,6 +5,7 @@ Request::Request(const char *r)
 {
 	std::string str(r);
 	m_req_msg = str;
+    parse_request();
 }
 
 

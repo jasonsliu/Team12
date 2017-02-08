@@ -26,7 +26,6 @@ using boost::asio::ip::tcp;
 typedef boost::shared_ptr<tcp::socket> socket_ptr;
 
 
-
 class Server{
 public:
 	void run_server(boost::asio::io_service& io_service);
@@ -39,10 +38,4 @@ private:
 };
 
 
-
-
-
 #endif
-
-
-
