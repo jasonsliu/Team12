@@ -1,12 +1,21 @@
 #ifndef RESPONSE
 #define RESPONSE
 
-#include "server.h"
 #include "Constants.h"
+#include "Request.h"
+#include <boost/smart_ptr.hpp>
+#include <boost/asio.hpp>
+#include <string>
+
+using boost::asio::ip::tcp;
+
+typedef boost::shared_ptr<tcp::socket> socket_ptr;
+
+
+void handle_request(socket_ptr sock, char* data, size_t length);
 
 
 class Response{
-
 public:
 	virtual void generate_response_msg()=0;
 	virtual void send(socket_ptr sock) = 0;
@@ -31,7 +40,6 @@ private:
 };
 
 
-
 class StaticResponse : public Response {
 public:
     StaticResponse(std::string file_name);
@@ -42,10 +50,6 @@ private:
 	std::string m_file_name ;
 
 };
-
-
-
-
 
 
 #endif

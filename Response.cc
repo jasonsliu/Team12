@@ -9,9 +9,38 @@
 #include <algorithm>
 
 
+//=================================================================
 
+
+void handle_request(socket_ptr sock, char* data, size_t length){
+	Request req(data);
+
+	if(req.get_type()==INVALID_SERVICE)
+      {
+        const char * response_msg;
+        response_msg =  "HTTP/1.0 404 Not Found\r\n"
+              "Content-type: text/html\r\n"
+              "Content-length: 80\r\n\r\n"
+              "<html><body><h1>404 Can not file what you are looking for :(</h1></body></html>";
+  
+         boost::asio::write(*sock, boost::asio::buffer(response_msg, strlen(response_msg)));
+      }
+      else if(req.get_type()==ECHO_SERVICE)
+      {
+        EchoResponse echo_response(data);
+        echo_response.generate_response_msg();
+        echo_response.send(sock);
+      }
+      else
+      {
+         StaticResponse static_response(req.get_file());
+         static_response.generate_response_msg();
+         static_response.send(sock);
+      }
+}
 
 //=================================================================
+
 
 EchoResponse::EchoResponse(char * r)
 {
@@ -41,6 +70,7 @@ StaticResponse::StaticResponse(std::string file_name)
 {
 	m_file_name = file_name;
 }
+
 
 void StaticResponse::generate_response_msg()
 {
@@ -116,6 +146,7 @@ void StaticResponse::generate_response_msg()
 	return;
 }
 
+
 void StaticResponse::send(socket_ptr sock)
  {
 	const char * response_msg;
@@ -167,9 +198,3 @@ void StaticResponse::send(socket_ptr sock)
 	return;
 	
  }
-
-
-
-
-
-

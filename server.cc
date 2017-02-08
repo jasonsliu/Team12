@@ -7,7 +7,6 @@
 //
 
 #include "server.h"
-#include "Request.h"
 #include "Response.h"
 #include "Constants.h"
 
@@ -22,6 +21,7 @@ void Server::session(socket_ptr sock)
 
   try
   {
+    // TODO: implement timeout for session
     for (;;)
     {
       char data[max_length];
@@ -31,36 +31,8 @@ void Server::session(socket_ptr sock)
         break; // Connection closed cleanly by peer.
       else if (error)
         throw boost::system::system_error(error); // Some other error.
-		  
-      
 
-      Request req(data);
-      //parse the request message
-      req.parse_request();
-
-      if(req.get_type()==INVALID_SERVICE)
-      {
-        const char * response_msg;
-        response_msg =  "HTTP/1.0 404 Not Found\r\n"
-              "Content-type: text/html\r\n"
-              "Content-length: 80\r\n\r\n"
-              "<html><body><h1>404 Can not file what you are looking for :(</h1></body></html>";
-  
-         boost::asio::write(*sock, boost::asio::buffer(response_msg, strlen(response_msg)));
-      }
-      else if(req.get_type()==ECHO_SERVICE)
-      {
-        EchoResponse echo_response(data);
-        echo_response.generate_response_msg();
-        echo_response.send(sock);
-      }
-      else
-      {
-         StaticResponse static_response(req.get_file());
-         static_response.generate_response_msg();
-         static_response.send(sock);
-      }      
-      return;
+      handle_request(sock, data, length);
     }
 
   }
@@ -91,16 +63,3 @@ void Server::run_server(boost::asio::io_service& io_service)
     t.detach();
   }
 }
-
-
-
-
-
-
-
-
-
-
-
-
-
