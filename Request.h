@@ -7,12 +7,10 @@
 #include <sstream>
 
 
-
-
 class Request 
 {
 public:
-	Request(char *r);
+	Request(const char *r);
 	void parse_request();
 
 	std::string get_url(){return m_url;}
@@ -40,8 +38,4 @@ private:
 };
 
 
-
-
-
-#endif
- 
+#endif 
