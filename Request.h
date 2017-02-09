@@ -3,39 +3,37 @@
 
 #include "Constants.h"
 #include <string>
+#include <map>
 #include <iostream>
 #include <sstream>
 
+//TODO: HTTP version
 
 class Request 
 {
 public:
-	Request(const char *r);
+	Request(const char *r, 
+		std::map<std::string, Service_type> str2service, 
+		std::map<std::string, std::string> str2staticBaseDir);
 
 	std::string get_url(){return m_url;}
-	Service_type get_type (){return m_type;}
+	Service_type get_service_type(){return m_type;}
 	std::string get_req_msg(){return m_req_msg;}
-	std::string get_file(){return m_file;}
+	std::string get_static_file_path(){return m_file;}
 	Http_method get_method(){return m_method;}
-
-
-	void set_method(std::string method);
-	void set_type(Service_type type);
-private:
 	void parse_request();
+	void set_method(std::string method);
+	void set_type(Service_type type){ m_type = type; }
 
-	// The actual request message
-	std::string m_req_msg;	
-	// type can either be echo or file 
-	Service_type m_type;
-	//  POST or GET ...
-	Http_method m_method;
-
+private:
+	std::string m_req_msg;// The entire request message
+	Service_type m_type; // echo or static 
+	Http_method m_method; // GET, POST etc.
 	std::string m_url;
-
 	std::string m_file;
-  
-   // don not have to implement http version yet
+	std::map <std::string, Service_type> m_str2service;
+  	std::map <std::string, std::string> m_str2staticBaseDir;
+	
 };
 
 

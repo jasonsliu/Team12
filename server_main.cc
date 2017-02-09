@@ -13,26 +13,6 @@
 #include <string>
 
 
-int getPort(const NginxConfig &config) { // Gets port from config_file
-  for (const auto& statement : config.statements_) {
-    bool kl = true;
-
-    for (const std::string& token : statement->tokens_) {
-   //   std::cout << ">>>>>>>>>>>DEBUG" << token << std::endl;
-      if (token == "server"){
-        return getPort(*statement->child_block_.get());
-      }
-      
-   //   std::cout << ">>>>>>>>>>>DEBUG" << kl << std::endl;
-      if (!kl) {
-        try { return stoi(token); } catch (...) {}
-      }
-      kl = (token != "listen");
-    }
-  }
-  return -1;
-}
-
 int main(int argc, char* argv[])
 {
   using namespace std; 
@@ -54,12 +34,9 @@ int main(int argc, char* argv[])
       std::cerr  << "Parse config file failed\n" ;
       return -1;
     }
-    int port = getPort(config);
 
-    Server server(port);
-    boost::asio::io_service io;
-
-    server.run_server(io);
+    Server server(config);
+    server.run_server();
   }
   catch (std::exception& e)
   {

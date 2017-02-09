@@ -1,17 +1,15 @@
 #include "Request.h"
 
 
-Request::Request(const char *r)
-{
-	std::string str(r);
-	m_req_msg = str;
+Request::Request(
+    const char *r,
+    std::map <std::string, Service_type> str2service_,
+    std::map <std::string, std::string> str2staticBaseDir_)
+    :m_req_msg((std::string)r),
+    m_str2service(str2service_),
+    m_str2staticBaseDir(str2staticBaseDir_)
+{ 
     parse_request();
-}
-
-
-void Request::set_type(Service_type type)
-{
-    m_type = type;
 }
 
 
@@ -70,7 +68,6 @@ void Request::parse_request()
     std::getline(req_stream, req_first_line);
     std::cout<<"debug msg: "<<"first line of request is :"<<req_first_line<<std::endl;
 
-
     // start to decode first line 
     std::string method = "";
     std::string url = "";
@@ -97,7 +94,6 @@ void Request::parse_request()
         }
     }
 
-
     std::cout << "Method is " << method << std::endl;
     std::cout << "Url is " << url << std::endl;
     std::cout << "version is " << http_ver << std::endl;
@@ -115,41 +111,42 @@ void Request::parse_request()
     {
         url.erase(0,1);
         size_t pos = url.find("/");
-        std::string type = s_toupper(url.substr(0, pos));
-        if(type=="ECHO")
-        {
-            std::cout << "echo type"<<std::endl; 
-            set_type(ECHO_SERVICE);
-        }
-        else if(type == "STATIC")
-        {
-            std::cout << "static type"<<std::endl; 
-            set_type(STATIC_SERVICE);
-            // if does not exist second "/"  example: /STATIC 
-            if (pos == std::string::npos)
+        std::string type = url.substr(0, pos);
+
+        if (m_str2service.count(type)){
+            if(m_str2service[type] == ECHO_SERVICE)
             {
-                m_file = "";
+                std::cout << "echo type"<<std::endl; 
+                set_type(ECHO_SERVICE);
             }
-            else 
+            else if(m_str2service[type] == STATIC_SERVICE)
             {
-                m_file = url.substr(pos+1, std::string::npos);
+                std::cout << "static type"<<std::endl; 
+                set_type(STATIC_SERVICE);
+                // if does not exist second "/"  example: /STATIC 
+                if (pos == std::string::npos)
+                {
+                    m_file = "";
+                }
+                else 
+                {
+                    m_file = url.substr(pos+1, std::string::npos);
+                }
+                if(m_file[m_file.length()-1]=='/')
+                {
+                    m_file.erase(m_file.length()-1);
+                }
+
+                m_file = m_str2staticBaseDir[type] + m_file;
+                std::cout<<"FILE IS: "<<m_file<<std::endl;
             }
-            if(m_file[m_file.length()-1]=='/')
-            {
-                m_file.erase(m_file.length()-1);
-            }
-            std::cout<<"FILE NAME IS: "<<m_file<<std::endl;
         }
         else
         {
-            std::cout<<"invalid type"<<std::endl;
+            std::cout<<"invalid type"<< type << std::endl;
             set_type(INVALID_SERVICE);
         }
-        // if does not exist second "/"  example: /STATIC 
-
     }
-
-
 
     return ;
 }
