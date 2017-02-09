@@ -1,5 +1,4 @@
 #include "Response.h"
-#include "Constants.h"
 #include <fcntl.h>
 #include <sys/types.h>
 #include <sys/stat.h>
@@ -12,10 +11,10 @@
 //=================================================================
 
 
-void handle_request(socket_ptr sock, char* data, size_t length){
-	Request req(data);
+void handle_request(socket_ptr sock, Request req, size_t length){
+	std::cout << "RESPONSE: service type " << req.get_service_type() << std::endl;
 
-	if(req.get_type()==INVALID_SERVICE)
+	if(req.get_service_type()==INVALID_SERVICE)
       {
         const char * response_msg;
         response_msg =  "HTTP/1.0 404 Not Found\r\n"
@@ -25,15 +24,15 @@ void handle_request(socket_ptr sock, char* data, size_t length){
   
          boost::asio::write(*sock, boost::asio::buffer(response_msg, strlen(response_msg)));
       }
-      else if(req.get_type()==ECHO_SERVICE)
+      else if(req.get_service_type()==ECHO_SERVICE)
       {
-        EchoResponse echo_response(data);
+        EchoResponse echo_response(req.get_req_msg().c_str());
         echo_response.generate_response_msg();
         echo_response.send(sock);
       }
-      else
+      else if(req.get_service_type()==STATIC_SERVICE)
       {
-         StaticResponse static_response(req.get_file());
+         StaticResponse static_response(req.get_static_file_path());
          static_response.generate_response_msg();
          static_response.send(sock);
       }
@@ -42,7 +41,7 @@ void handle_request(socket_ptr sock, char* data, size_t length){
 //=================================================================
 
 
-EchoResponse::EchoResponse(char * r)
+EchoResponse::EchoResponse(const char * r)
 {
 	std::string str(r);
 	m_req_msg = str;

@@ -10,6 +10,7 @@
 //
 
 #include "config_parser.h"
+#include "Constants.h"
 #include <cstdlib>
 #include <iostream>
 //#include <boost/bind.hpp>
@@ -28,13 +29,16 @@ typedef boost::shared_ptr<tcp::socket> socket_ptr;
 
 class Server{
 public:
-	void run_server(boost::asio::io_service& io_service);
-	/* copied from yichi example lines 3-14 */
-	void session(socket_ptr sock);
-	Server(int p);
+	void run_server();
+	Server(const NginxConfig &config);
+
+
 private:
 	unsigned short port;
-
+	std::map <std::string, Service_type> str2service;
+	std::map <std::string, std::string> str2staticBaseDir;
+	
+	void session(socket_ptr sock);
 };
 
 

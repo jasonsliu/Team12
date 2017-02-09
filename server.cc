@@ -1,5 +1,3 @@
-// Copied from https://github.com/dkawashima/CS-3-Boost-Echo-Static-Server/blob/dkawashi-nginx/
-//
 // Copyright (c) 2003-2012 Christopher M. Kohlhoff (chris at kohlhoff dot com)
 //
 // Distributed under the Boost Software License, Version 1.0. (See accompanying
@@ -8,12 +6,68 @@
 
 #include "server.h"
 #include "Response.h"
-#include "Constants.h"
 
-Server::Server(int p)
-{
-  port = p;
+//TODO: Logging
+
+struct server_parameters{
+  int port = -1;
+  std::map <std::string, Service_type> str2service;
+  std::map <std::string, std::string> str2staticBaseDir;
+};
+
+
+server_parameters get_server_parameters(const NginxConfig &config) {
+  server_parameters sp;
+
+  for (const auto& statement : config.statements_) {
+    const std::vector<std::string> tokens = statement->tokens_;
+
+      if( tokens[0] == "server" ){
+        return get_server_parameters(*statement->child_block_.get());
+      }
+      else if ( tokens[0] == "listen" ){
+        if (tokens.size() >= 2){ 
+          sp.port = stoi(tokens[1]); 
+        } 
+        else{ 
+          std::cerr << "CONFIG ERROR: PORT " << tokens.size() << std::endl;
+          sp.port = -1; 
+        }        
+      }   
+      else if ( tokens[0] == "echo_service" ) {
+        if (tokens.size() >= 2){
+          sp.str2service[tokens[1]] = ECHO_SERVICE;
+        }
+        else{
+          std::cerr << "CONFIG ERROR: ECHO SERVICE " << tokens.size() << std::endl;
+        }
+      }
+      else if ( tokens[0] == "static_service" ) {
+        if (tokens.size() >= 3){
+          sp.str2service[tokens[1]] = STATIC_SERVICE;
+          std::string dir = tokens[2];
+          if ( dir[dir.length() - 1] != '/' ){ dir += '/'; }
+          sp.str2staticBaseDir[tokens[1]] = dir;
+        }
+        else{
+          std::cerr << "CONFIG ERROR: STATIC SERVICE " << tokens.size() << std::endl;
+        }
+      }
+  }
+
+  return sp;
 }
+
+
+Server::Server(const NginxConfig &config)
+{
+  server_parameters sp = get_server_parameters(config);
+
+  this->port = sp.port;
+  this->str2service = sp.str2service;
+  this->str2staticBaseDir = sp.str2staticBaseDir;
+}
+
 
 void Server::session(socket_ptr sock)
 {
@@ -31,8 +85,9 @@ void Server::session(socket_ptr sock)
         break; // Connection closed cleanly by peer.
       else if (error)
         throw boost::system::system_error(error); // Some other error.
-
-      handle_request(sock, data, length);
+      
+      Request req(data, this->str2service, this->str2staticBaseDir);
+      handle_request(sock, req, length);
     }
 
   }
@@ -43,8 +98,9 @@ void Server::session(socket_ptr sock)
 }
 
 
-void Server::run_server(boost::asio::io_service& io_service)
+void Server::run_server()
 {
+  boost::asio::io_service io_service;
   tcp::acceptor a(io_service, tcp::endpoint(tcp::v4(), port));
 
   // Reuse port (server useually )
