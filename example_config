@@ -1,0 +1,6 @@
+server {
+	listen 8080;
+	echo_service echo; 
+	static_service static1 testfiles;
+	static_service static2 ../testfiles;
+}
