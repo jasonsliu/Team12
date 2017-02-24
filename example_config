@@ -1,6 +1,13 @@
-server {
-	listen 8070;
-	echo_service echo; 
-	static_service static1 testfiles;
-	static_service static2 ../testfiles;
+# This is a comment.
+
+port 2020;  # This is also a comment.
+
+path / StaticHandler {
+  root /foo/bar;
 }
+
+path /echo EchoHandler {}
+
+# Default response handler if no handlers match.
+default NotFoundHandler {}
+error ErrorHandler {}
