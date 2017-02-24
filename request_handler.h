@@ -2,10 +2,12 @@
 #define REQUEST_HANDLER
 
 #include "Constants.h"
+#include "config_parser.h"
 #include <string>
 #include <map>
 #include <iostream>
 #include <sstream>
+#include　<fstream>
 
 
 class Request {
@@ -32,6 +34,7 @@ class Request {
 
 };
 
+
 // Represents an HTTP response.
 //
 // Usage:
@@ -40,19 +43,43 @@ class Request {
 //   r.SetBody(...);
 //   return r.ToString();
 //
+// Constructed by the RequestHandler, after which the server should call ToString
+// to serialize.
 class Response {
  public:
   enum ResponseCode {
-    // Define your HTTP response codes here.
-    OK = 200,
-    NOT_FOUND = 404,
-    NOT_IMPLEMENTED = 501
+    //Informational
+	CONTINUE=100,
+	SWITCHING,
+
+	//Success
+	OK=200,
+	CREATED,
+	ACCEPTED,
+	NO_CONTENT=204,
+
+	//Redirection
+	MOVED_PERMANENTLY=301,
+	MOVED_TEMPORARILY,
+	NOT_MODIFIED=304,
+
+	//Client Error
+	BAD_REQUEST=400,
+	UNAUTHORIZED,
+	FORBIDDEN=403,
+	NOT_FOUND,
+	METHOD_NOT_ALLOWED,
+	NOT_ACCEPTABLE,
+
+	//Server Error
+	INTERNAL_SERVER_ERROR=500,
+	NOT_IMPLEMENTED,
+	SERVICE_UNAVAILABLE=503
   };
   
   void SetStatus(const ResponseCode response_code);
   void AddHeader(const std::string& header_name, const std::string& header_value);
   void SetBody(const std::string& body);
-  
   std::string ToString();
 
  private:
@@ -64,29 +91,82 @@ class Response {
 
 };
 
+
 // Represents the parent of all request handlers. Implementations should expect to
 // be long lived and created at server constrution.
 class RequestHandler {
  public:
-  enum Status {
-    OK = 0;
 
-    // Define your status codes here.
-  };
+	enum Status {
+		OK = 0;
+		NOT_FOUND;
+		ERROR;
+	};
   
-  // Initializes the handler. Returns a response code indicating success or
-  // failure condition.
-  // uri_prefix is the value in the config file that this handler will run for.
-  // config is the contents of the child block for this handler ONLY.
   virtual Status Init(const std::string& uri_prefix,
                       const NginxConfig& config) = 0;
-
-  // Handles an HTTP request, and generates a response. Returns a response code
-  // indicating success or failure condition. If ResponseCode is not OK, the
-  // contents of the response object are undefined, and the server will return
-  // HTTP code 500.
   virtual Status HandleRequest(const Request& request,
                                Response* response) = 0;
+};
+
+
+
+// Different types of derived handlers listed below for now
+// for convenience
+// may put in separate files later
+
+class Handler_Echo: public RequestHandler {
+	public:
+		virtual Status Init(const std::string& uri_prefix, 
+						const NginxConfig& config){
+			this->uri = uri_prefix;
+		}
+		virtual Status HandleRequest(const Request& request,
+                               Response* response);
+
+	private:
+		std::string uri;
+};
+
+
+class Handler_Static: public RequestHandler {
+	public:
+		virtual Status Init(const std::string& uri_prefix, 
+						const NginxConfig& config);
+		virtual Status HandleRequest(const Request& request,
+                               Response* response);
+		
+	private:
+		std::string uri;
+		std::string rootDir;
+};
+
+
+class Handler_404: public RequestHandler {
+	public:
+		virtual Status Init(const std::string& uri_prefix, 
+						const NginxConfig& config){
+			this->uri = uri_prefix;
+		}
+		virtual Status HandleRequest(const Request& request,
+                               Response* response);
+
+	private:
+		std::string uri;
+};
+
+
+class Handler_500: public RequestHandler {
+	public:
+		virtual Status Init(const std::string& uri_prefix, 
+						const NginxConfig& config){
+			this->uri = uri_prefix;
+		}
+		virtual Status HandleRequest(const Request& request,
+                               Response* response);
+
+	private:
+		std::string uri;
 };
 
 
