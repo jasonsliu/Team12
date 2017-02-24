@@ -7,14 +7,7 @@
 #include <iostream>
 #include <sstream>
 
-// For the Request and Response classes, you need to implement the methods
-// and add private data as appropriate. You may also need to modify or extend
-// the API when implementing the reverse proxy. Use your good judgment.
 
-// Represents an HTTP Request.
-//
-// Usage:
-//   auto request = Request::Parse(raw_request);
 class Request {
  public:
   static unique_ptr<Request> Parse(const std::string& raw_request);
@@ -30,11 +23,11 @@ class Request {
   std::string body() const;
 
   private:
-  	std::string m_raw_request;
-  	std::string m_method;
-  	std::string m_uri;
-  	std::string m_version;
-  	std::vector<std::pair<std::string, std::string>> m_headers;
+  	std::string m_raw_request; //
+  	std::string m_method;  //
+  	std::string m_uri;   //
+  	std::string m_version; //
+  	std::vector<std::pair<std::string, std::string>> m_headers; 
   	std::string m_body;
 
 };
@@ -47,12 +40,13 @@ class Request {
 //   r.SetBody(...);
 //   return r.ToString();
 //
-// Constructed by the RequestHandler, after which the server should call ToString
-// to serialize.
 class Response {
  public:
   enum ResponseCode {
     // Define your HTTP response codes here.
+    OK = 200,
+    NOT_FOUND = 404,
+    NOT_IMPLEMENTED = 501
   };
   
   void SetStatus(const ResponseCode response_code);
@@ -60,6 +54,14 @@ class Response {
   void SetBody(const std::string& body);
   
   std::string ToString();
+
+ private:
+ 	ResponseCode m_code;
+ 	std::vector<std::pair<std::string, std::string>> m_headers;
+ 	std::string m_body;
+ 	// add a new private member, easier to deal with in ToString()
+ 	std::string m_first_line;
+
 };
 
 // Represents the parent of all request handlers. Implementations should expect to
@@ -68,6 +70,7 @@ class RequestHandler {
  public:
   enum Status {
     OK = 0;
+
     // Define your status codes here.
   };
   
