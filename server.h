@@ -11,6 +11,7 @@
 
 #include "config_parser.h"
 #include "Constants.h"
+#include "request_handler.h"
 #include <cstdlib>
 #include <iostream>
 //#include <boost/bind.hpp>
@@ -35,9 +36,8 @@ public:
 
 private:
 	unsigned short port;
-	std::map <std::string, Service_type> str2service;
-	std::map <std::string, std::string> str2staticBaseDir;
-	
+	std::map <std::string, RequestHandler> uri2hander;
+
 	void session(socket_ptr sock);
 };
 

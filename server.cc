@@ -6,13 +6,13 @@
 
 #include "server.h"
 #include "Response.h"
+#include "request_handler.h"
 
 //TODO: Logging
 
 struct server_parameters{
   int port = -1;
-  std::map <std::string, Service_type> str2service;
-  std::map <std::string, std::string> str2staticBaseDir;
+  std::map <std::string, RequestHandler> uri2hander;
 };
 
 
@@ -22,36 +22,31 @@ server_parameters get_server_parameters(const NginxConfig &config) {
   for (const auto& statement : config.statements_) {
     const std::vector<std::string> tokens = statement->tokens_;
 
-      if( tokens[0] == "server" ){
-        return get_server_parameters(*statement->child_block_.get());
-      }
-      else if ( tokens[0] == "listen" ){
+      if (tokens[0] == "port"){
         if (tokens.size() >= 2){ 
           sp.port = stoi(tokens[1]); 
         } 
         else{ 
           std::cerr << "CONFIG ERROR: PORT " << tokens.size() << std::endl;
           sp.port = -1; 
-        }        
-      }   
-      else if ( tokens[0] == "echo_service" ) {
-        if (tokens.size() >= 2){
-          sp.str2service[tokens[1]] = ECHO_SERVICE;
+        }      
+      }
+      else if (tokens[0] == "path"){
+        if (tokens[2] == "EchoHandler"){
+          sp.uri2hander[tokens[1]] = Handler_Echo(tokens[1], *statement->child_block_.get());
+        }
+        else if (tokens[2] == "StaticHandler"){
+          sp.uri2hander[tokens[1]] = Handler_Static(tokens[1], *statement->child_block_.get());
         }
         else{
-          std::cerr << "CONFIG ERROR: ECHO SERVICE " << tokens.size() << std::endl;
+          sp.uri2hander[tokens[1]] = Handler_404(tokens[1], *statement->child_block_.get());
         }
       }
-      else if ( tokens[0] == "static_service" ) {
-        if (tokens.size() >= 3){
-          sp.str2service[tokens[1]] = STATIC_SERVICE;
-          std::string dir = tokens[2];
-          if ( dir[dir.length() - 1] != '/' ){ dir += '/'; }
-          sp.str2staticBaseDir[tokens[1]] = dir;
-        }
-        else{
-          std::cerr << "CONFIG ERROR: STATIC SERVICE " << tokens.size() << std::endl;
-        }
+      else if (tokens[0] == "default"){
+        sp.uri2hander["404"] = Handler_404("404", *statement->child_block_.get());
+      }
+      else if (tokens[0] == 'error'){
+        sp.uri2hander["500"] = Handler_404("500", *statement->child_block_.get());
       }
   }
 
@@ -64,8 +59,7 @@ Server::Server(const NginxConfig &config)
   server_parameters sp = get_server_parameters(config);
 
   this->port = sp.port;
-  this->str2service = sp.str2service;
-  this->str2staticBaseDir = sp.str2staticBaseDir;
+  this->uri2hander = sp.uri2hander;
 }
 
 
@@ -86,8 +80,25 @@ void Server::session(socket_ptr sock)
       else if (error)
         throw boost::system::system_error(error); // Some other error.
       
-      Request req(data, this->str2service, this->str2staticBaseDir);
-      handle_request(sock, req, length);
+      Request req();
+      Response res();
+      RequestHandler::Status handle_stat；
+      req.Parse(data);
+      auto it_uh = this->uri2hander.find( req.uriHead() );
+      if (it_uh == m.end())
+        handle_stat = this->uri2hander["404"].HandleRequest(req, &res);
+      else{
+        handle_stat = it_uh->second.HandleRequest(req, &res);
+      }
+
+      if (handle_stat == RequestHandler::NOT_FOUND){
+        (void*) this->uri2hander["404"].HandleRequest(req, &res);
+      }
+      else if (handle_stat == RequestHandler::ERROR){
+        (void*) this->uri2hander["500"].HandleRequest(req, &res);
+      }
+      
+      boost::asio::write(*sock, boost::asio::buffer(res.ToString()));
     }
 
   }
