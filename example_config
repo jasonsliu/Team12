@@ -1,5 +1,5 @@
 server {
-	listen 8080;
+	listen 8070;
 	echo_service echo; 
 	static_service static1 testfiles;
 	static_service static2 ../testfiles;

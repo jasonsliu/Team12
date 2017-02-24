@@ -19,7 +19,7 @@ void handle_request(socket_ptr sock, Request req, size_t length){
         const char * response_msg;
         response_msg =  "HTTP/1.0 404 Not Found\r\n"
               "Content-type: text/html\r\n"
-              "Content-length: 80\r\n\r\n"
+              "Content-length: 79\r\n\r\n"
               "<html><body><h1>404 Can not file what you are looking for :(</h1></body></html>";
   
          boost::asio::write(*sock, boost::asio::buffer(response_msg, strlen(response_msg)));
@@ -28,7 +28,9 @@ void handle_request(socket_ptr sock, Request req, size_t length){
       {
         EchoResponse echo_response(req.get_req_msg().c_str());
         echo_response.generate_response_msg();
+        std::cout << "before sending " <<std::endl;
         echo_response.send(sock);
+        std::cout << "after sending"<<std::endl;
       }
       else if(req.get_service_type()==STATIC_SERVICE)
       {
@@ -51,7 +53,8 @@ EchoResponse::EchoResponse(const char * r)
 
 void EchoResponse::generate_response_msg()
 {
-	set_response_msg("HTTP/1.1 200 OK\r\nContent-Type: text/plain\r\n\r\n");
+	set_response_msg("HTTP/1.1 200 OK\r\nContent-Type: text/plain\r\nContent-length: ");
+	set_response_msg(get_response_msg()+std::to_string((int)m_req_msg.length())+"\r\n\r\n");
 	set_response_msg(get_response_msg()+m_req_msg);
 	return;  
 }
@@ -59,6 +62,8 @@ void EchoResponse::generate_response_msg()
 void EchoResponse::send(socket_ptr sock)
 {
 	const char * response_msg = get_response_msg().c_str();	
+	std::cout<< response_msg<< std::endl;
+	std::cout<< "length :" << strlen(response_msg) <<std::endl;
 	boost::asio::write(*sock, boost::asio::buffer(response_msg, strlen(response_msg)));
 }
 
@@ -154,7 +159,7 @@ void StaticResponse::send(socket_ptr sock)
 	{
 		response_msg =  "HTTP/1.0 404 Not Found\r\n"
    						"Content-type: text/html\r\n"
-   						"Content-length: 80\r\n\r\n"
+   						"Content-length: 79\r\n\r\n"
     					"<html><body><h1>404 Can not file what you are looking for :(</h1></body></html>";
 	
 		boost::asio::write(*sock, boost::asio::buffer(response_msg, strlen(response_msg)));
@@ -175,7 +180,7 @@ void StaticResponse::send(socket_ptr sock)
 		{
 			response_msg =  "HTTP/1.0 404 Not Found\r\n"
    						"Content-type: text/html\r\n"
-   						"Content-length: 80\r\n\r\n"
+   						"Content-length: 79\r\n\r\n"
     					"<html><body><h1>404 Can not file what you are looking for :(</h1></body></html>";
 	
 			boost::asio::write(*sock, boost::asio::buffer(response_msg, strlen(response_msg)));
