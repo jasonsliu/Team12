@@ -21,7 +21,6 @@ class Request {
 
   using Headers = std::vector<std::pair<std::string, std::string>>;
   Headers headers() const;
-
   std::string body() const;
 
   private:
@@ -33,7 +32,6 @@ class Request {
   	std::string m_body;
 
 };
-
 
 // Represents an HTTP response.
 //
@@ -96,7 +94,6 @@ class Response {
 // be long lived and created at server constrution.
 class RequestHandler {
  public:
-
 	enum Status {
 		OK = 0;
 		NOT_FOUND;
@@ -108,7 +105,6 @@ class RequestHandler {
   virtual Status HandleRequest(const Request& request,
                                Response* response) = 0;
 };
-
 
 
 // Different types of derived handlers listed below for now
