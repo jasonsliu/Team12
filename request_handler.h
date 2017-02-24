@@ -1,5 +1,5 @@
-#ifndef REQUEST
-#define REQUEST
+#ifndef REQUEST_HANDLER
+#define REQUEST_HANDLER
 
 #include "Constants.h"
 #include <string>
@@ -7,44 +7,83 @@
 #include <iostream>
 #include <sstream>
 
-//TODO: HTTP version
+// For the Request and Response classes, you need to implement the methods
+// and add private data as appropriate. You may also need to modify or extend
+// the API when implementing the reverse proxy. Use your good judgment.
 
-class Request 
-{
-public:
-	// Request(const char *r, 
-	// 	std::map<std::string, Service_type> str2service, 
-	// 	std::map<std::string, std::string> str2staticBaseDir);
+// Represents an HTTP Request.
+//
+// Usage:
+//   auto request = Request::Parse(raw_request);
+class Request {
+ public:
+  static unique_ptr<Request> Parse(const std::string& raw_request);
 
-	// std::string get_url(){return m_url;}
-	// Service_type get_service_type(){return m_type;}
-	// std::string get_req_msg(){return m_req_msg;}
-	// std::string get_static_file_path(){return m_file;}
-	// Http_method get_method(){return m_method;}
-	// void parse_request();
-	// void set_method(std::string method);
-	// void set_type(Service_type type){ m_type = type; }
+  std::string raw_request() const;
+  std::string method() const;
+  std::string uri() const;
+  std::string version() const;
 
-	static unique_ptr<Request> Parse(const std::string& raw_request);
-	std::string raw_request() const;
-  	std::string method() const;
-  	std::string uri() const;
- 	std::string version() const;
- 	
- 	using Headers = std::vector<std::pair<std::string, std::string>>;
-  	Headers headers() const;
-  	std::string body() const;
+  using Headers = std::vector<std::pair<std::string, std::string>>;
+  Headers headers() const;
 
+  std::string body() const;
 
-private:
-	// std::string m_req_msg;// The entire request message
-	// Service_type m_type; // echo or static 
-	// Http_method m_method; // GET, POST etc.
-	// std::string m_url;
-	// std::string m_file;
-	// std::map <std::string, Service_type> m_str2service;
- //  	std::map <std::string, std::string> m_str2staticBaseDir;
-	
+  private:
+  	std::string m_raw_request;
+  	std::string m_method;
+  	std::string m_uri;
+  	std::string m_version;
+  	std::vector<std::pair<std::string, std::string>> m_headers;
+  	std::string m_body;
+
+};
+
+// Represents an HTTP response.
+//
+// Usage:
+//   Response r;
+//   r.SetStatus(RESPONSE_200);
+//   r.SetBody(...);
+//   return r.ToString();
+//
+// Constructed by the RequestHandler, after which the server should call ToString
+// to serialize.
+class Response {
+ public:
+  enum ResponseCode {
+    // Define your HTTP response codes here.
+  };
+  
+  void SetStatus(const ResponseCode response_code);
+  void AddHeader(const std::string& header_name, const std::string& header_value);
+  void SetBody(const std::string& body);
+  
+  std::string ToString();
+};
+
+// Represents the parent of all request handlers. Implementations should expect to
+// be long lived and created at server constrution.
+class RequestHandler {
+ public:
+  enum Status {
+    OK = 0;
+    // Define your status codes here.
+  };
+  
+  // Initializes the handler. Returns a response code indicating success or
+  // failure condition.
+  // uri_prefix is the value in the config file that this handler will run for.
+  // config is the contents of the child block for this handler ONLY.
+  virtual Status Init(const std::string& uri_prefix,
+                      const NginxConfig& config) = 0;
+
+  // Handles an HTTP request, and generates a response. Returns a response code
+  // indicating success or failure condition. If ResponseCode is not OK, the
+  // contents of the response object are undefined, and the server will return
+  // HTTP code 500.
+  virtual Status HandleRequest(const Request& request,
+                               Response* response) = 0;
 };
 
 
