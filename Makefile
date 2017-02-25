@@ -1,13 +1,13 @@
 # !!! USE TABS NOT SPACES !!!
 
 GTEST_DIR=googletest/googletest
-CFLAGS = -std=c++0x -Wall -g
+CFLAGS = -std=c++11 -g
 
 
 compile_webserver:
 # use -pthread to enable multithreading.
 # need to link -lboost_system last.
-	g++ $(CFLAGS) server_main.cc server.cc config_parser.cc Request.cc Response.cc -o webserver -pthread -lboost_system
+	g++ $(CFLAGS) server_main.cc server.cc config_parser.cc request_handler.cc -o webserver -pthread -lboost_system
 
 
 compile_gtest:

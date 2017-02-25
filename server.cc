@@ -5,14 +5,13 @@
 //
 
 #include "server.h"
-#include "Response.h"
 #include "request_handler.h"
 
 //TODO: Logging
 
 struct server_parameters{
   int port = -1;
-  std::map <std::string, RequestHandler> uri2hander;
+  std::map <std::string, RequestHandler*> uri2handler;
 };
 
 
@@ -33,23 +32,32 @@ server_parameters get_server_parameters(const NginxConfig &config) {
       }
       else if (tokens[0] == "path"){
         if (tokens[2] == "EchoHandler"){
-          sp.uri2hander[tokens[1]] = Handler_Echo(tokens[1], *statement->child_block_.get());
+          RequestHandler* h = new Handler_Echo;
+          (void*) h->Init(tokens[1], *(statement->child_block_));
+          sp.uri2handler[tokens[1]] = h;
         }
         else if (tokens[2] == "StaticHandler"){
-          sp.uri2hander[tokens[1]] = Handler_Static(tokens[1], *statement->child_block_.get());
+          RequestHandler* h = new Handler_Static;
+          (void*) h->Init(tokens[1], *(statement->child_block_));
+          sp.uri2handler[tokens[1]] = h;
         }
         else{
-          sp.uri2hander[tokens[1]] = Handler_404(tokens[1], *statement->child_block_.get());
+          continue;
         }
       }
       else if (tokens[0] == "default"){
-        sp.uri2hander["404"] = Handler_404("404", *statement->child_block_.get());
+        RequestHandler* h = new Handler_404;
+        (void*) h->Init("/404", *(statement->child_block_));
+        sp.uri2handler["/404"] = h;
       }
-      else if (tokens[0] == 'error'){
-        sp.uri2hander["500"] = Handler_404("500", *statement->child_block_.get());
+      else if (tokens[0] == "error"){
+        RequestHandler* h = new Handler_500;
+        (void*) h->Init("/500", *(statement->child_block_));
+        sp.uri2handler["/500"] = h;
       }
   }
 
+  std::cout << "SIZE OF MAP : "<<sp.uri2handler.size() <<std::endl;
   return sp;
 }
 
@@ -59,7 +67,7 @@ Server::Server(const NginxConfig &config)
   server_parameters sp = get_server_parameters(config);
 
   this->port = sp.port;
-  this->uri2hander = sp.uri2hander;
+  this->uri2handler = sp.uri2handler;
 }
 
 
@@ -80,24 +88,28 @@ void Server::session(socket_ptr sock)
       else if (error)
         throw boost::system::system_error(error); // Some other error.
       
-      Request req();
-      Response res();
-      RequestHandler::Status handle_stat；
-      req.Parse(data);
-      auto it_uh = this->uri2hander.find( req.uriHead() );
-      if (it_uh == m.end())
-        handle_stat = this->uri2hander["404"].HandleRequest(req, &res);
-      else{
-        handle_stat = it_uh->second.HandleRequest(req, &res);
+      std::unique_ptr<Request> req = Request::Parse(data);
+      Response res;
+
+      RequestHandler::Status handle_stat;
+      auto it_uh = uri2handler.find(req->uriHead());
+      if (it_uh == uri2handler.end())
+      {
+        handle_stat = uri2handler["/404"]->HandleRequest(*req, &res);
+      }
+      else
+      {
+        handle_stat = it_uh->second->HandleRequest(*req, &res);
       }
 
       if (handle_stat == RequestHandler::NOT_FOUND){
-        (void*) this->uri2hander["404"].HandleRequest(req, &res);
+        (void*) uri2handler["/404"]->HandleRequest(*req, &res);
       }
       else if (handle_stat == RequestHandler::ERROR){
-        (void*) this->uri2hander["500"].HandleRequest(req, &res);
+        (void*) uri2handler["/500"]->HandleRequest(*req, &res);
       }
       
+   //   std::cout << "DEBUG: RESPONSE MESSAGE ========== \n" << res.ToString() << std::endl;
       boost::asio::write(*sock, boost::asio::buffer(res.ToString()));
     }
 

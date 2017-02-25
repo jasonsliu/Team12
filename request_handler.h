@@ -1,18 +1,24 @@
 #ifndef REQUEST_HANDLER
 #define REQUEST_HANDLER
 
-#include "Constants.h"
 #include "config_parser.h"
 #include <string>
 #include <map>
 #include <iostream>
+#include <fstream>
 #include <sstream>
-#include　<fstream>
+#include <fcntl.h>
+#include <unistd.h>
+#include <sys/types.h>
+#include <sys/stat.h>
+#include <algorithm>
+
+
 
 
 class Request {
  public:
-  static unique_ptr<Request> Parse(const std::string& raw_request);
+  static std::unique_ptr<Request> Parse(const std::string& raw_request);
 
   std::string raw_request() const;
   std::string method() const;
@@ -22,6 +28,12 @@ class Request {
   using Headers = std::vector<std::pair<std::string, std::string>>;
   Headers headers() const;
   std::string body() const;
+
+
+// need to support uri: path / !!!!!!!!!!
+  // split the uri the into two part
+  std::string uriHead() const;
+  std::string uriTail() const;
 
   private:
   	std::string m_raw_request; //
@@ -95,15 +107,13 @@ class Response {
 class RequestHandler {
  public:
 	enum Status {
-		OK = 0;
-		NOT_FOUND;
-		ERROR;
+		OK = 0,
+		NOT_FOUND,
+		ERROR
 	};
   
-  virtual Status Init(const std::string& uri_prefix,
-                      const NginxConfig& config) = 0;
-  virtual Status HandleRequest(const Request& request,
-                               Response* response) = 0;
+  virtual Status Init(const std::string& uri_prefix, const NginxConfig& config) = 0;
+  virtual Status HandleRequest(const Request& request, Response* response) = 0;
 };
 
 
@@ -113,12 +123,11 @@ class RequestHandler {
 
 class Handler_Echo: public RequestHandler {
 	public:
-		virtual Status Init(const std::string& uri_prefix, 
-						const NginxConfig& config){
+		virtual Status Init(const std::string& uri_prefix, const NginxConfig& config){
 			this->uri = uri_prefix;
+			return OK;
 		}
-		virtual Status HandleRequest(const Request& request,
-                               Response* response);
+		virtual Status HandleRequest(const Request& request, Response* response);
 
 	private:
 		std::string uri;
@@ -127,10 +136,8 @@ class Handler_Echo: public RequestHandler {
 
 class Handler_Static: public RequestHandler {
 	public:
-		virtual Status Init(const std::string& uri_prefix, 
-						const NginxConfig& config);
-		virtual Status HandleRequest(const Request& request,
-                               Response* response);
+		virtual Status Init(const std::string& uri_prefix, const NginxConfig& config);
+		virtual Status HandleRequest(const Request& request, Response* response);
 		
 	private:
 		std::string uri;
@@ -140,12 +147,11 @@ class Handler_Static: public RequestHandler {
 
 class Handler_404: public RequestHandler {
 	public:
-		virtual Status Init(const std::string& uri_prefix, 
-						const NginxConfig& config){
+		virtual Status Init(const std::string& uri_prefix, const NginxConfig& config){
 			this->uri = uri_prefix;
+			return OK;
 		}
-		virtual Status HandleRequest(const Request& request,
-                               Response* response);
+		virtual Status HandleRequest(const Request& request, Response* response);
 
 	private:
 		std::string uri;
@@ -154,12 +160,11 @@ class Handler_404: public RequestHandler {
 
 class Handler_500: public RequestHandler {
 	public:
-		virtual Status Init(const std::string& uri_prefix, 
-						const NginxConfig& config){
+		virtual Status Init(const std::string& uri_prefix, const NginxConfig& config){
 			this->uri = uri_prefix;
+			return OK;
 		}
-		virtual Status HandleRequest(const Request& request,
-                               Response* response);
+		virtual Status HandleRequest(const Request& request, Response* response);
 
 	private:
 		std::string uri;

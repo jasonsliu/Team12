@@ -36,7 +36,7 @@ public:
 
 private:
 	unsigned short port;
-	std::map <std::string, RequestHandler> uri2hander;
+	std::map <std::string, RequestHandler*> uri2handler;
 
 	void session(socket_ptr sock);
 };
