@@ -2,6 +2,7 @@
 #define REQUEST_HANDLER
 
 #include "config_parser.h"
+#include "logging.h"
 #include <string>
 #include <map>
 #include <iostream>
@@ -12,8 +13,6 @@
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <algorithm>
-
-
 
 
 class Request {
@@ -29,17 +28,15 @@ class Request {
   Headers headers() const;
   std::string body() const;
 
-
-// need to support uri: path / !!!!!!!!!!
-  // split the uri the into two part
+  // "/static/foo/bar" => "/static" + "/foo/bar"
   std::string uriHead() const;
   std::string uriTail() const;
 
   private:
-  	std::string m_raw_request; //
-  	std::string m_method;  //
-  	std::string m_uri;   //
-  	std::string m_version; //
+  	std::string m_raw_request;
+  	std::string m_method;
+  	std::string m_uri;
+  	std::string m_version;
   	std::vector<std::pair<std::string, std::string>> m_headers; 
   	std::string m_body;
 
@@ -170,5 +167,17 @@ class Handler_500: public RequestHandler {
 		std::string uri;
 };
 
+
+class Handler_Status: public RequestHandler {
+	public:
+		virtual Status Init(const std::string& uri_prefix, const NginxConfig& config){
+			this->uri = uri_prefix;
+			return OK;
+		}
+		virtual Status HandleRequest(const Request& request, Response* response);
+
+	private:
+		std::string uri;
+};
 
 #endif 

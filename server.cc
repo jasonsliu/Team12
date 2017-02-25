@@ -6,8 +6,8 @@
 
 #include "server.h"
 #include "request_handler.h"
+#include "logging.h"
 
-//TODO: Logging
 
 struct server_parameters{
   int port = -1;
@@ -20,7 +20,6 @@ server_parameters get_server_parameters(const NginxConfig &config) {
 
   for (const auto& statement : config.statements_) {
     const std::vector<std::string> tokens = statement->tokens_;
-
       if (tokens[0] == "port"){
         if (tokens.size() >= 2){ 
           sp.port = stoi(tokens[1]); 
@@ -35,11 +34,13 @@ server_parameters get_server_parameters(const NginxConfig &config) {
           RequestHandler* h = new Handler_Echo;
           (void*) h->Init(tokens[1], *(statement->child_block_));
           sp.uri2handler[tokens[1]] = h;
+          Logger::Instance()->add2handlerMap(tokens[1], tokens[2]);
         }
         else if (tokens[2] == "StaticHandler"){
           RequestHandler* h = new Handler_Static;
           (void*) h->Init(tokens[1], *(statement->child_block_));
           sp.uri2handler[tokens[1]] = h;
+          Logger::Instance()->add2handlerMap(tokens[1], tokens[2]);
         }
         else{
           continue;
@@ -49,11 +50,19 @@ server_parameters get_server_parameters(const NginxConfig &config) {
         RequestHandler* h = new Handler_404;
         (void*) h->Init("/404", *(statement->child_block_));
         sp.uri2handler["/404"] = h;
+        Logger::Instance()->add2handlerMap("/404", tokens[1]);
       }
       else if (tokens[0] == "error"){
         RequestHandler* h = new Handler_500;
         (void*) h->Init("/500", *(statement->child_block_));
         sp.uri2handler["/500"] = h;
+        Logger::Instance()->add2handlerMap("/500", tokens[1]);
+      }
+      else if (tokens[0] == "status"){
+        RequestHandler* h = new Handler_Status;
+        (void*) h->Init(tokens[1], *(statement->child_block_));
+        sp.uri2handler[tokens[1]] = h;
+        Logger::Instance()->add2handlerMap(tokens[1], tokens[2]);
       }
   }
 
@@ -83,6 +92,7 @@ void Server::session(socket_ptr sock)
       char data[max_length];
       boost::system::error_code error;
       size_t length = sock->read_some(boost::asio::buffer(data), error);
+      Logger::Instance()->incNumOfReq();
       if (error == boost::asio::error::eof)
         break; // Connection closed cleanly by peer.
       else if (error)
@@ -109,7 +119,6 @@ void Server::session(socket_ptr sock)
         (void*) uri2handler["/500"]->HandleRequest(*req, &res);
       }
       
-   //   std::cout << "DEBUG: RESPONSE MESSAGE ========== \n" << res.ToString() << std::endl;
       boost::asio::write(*sock, boost::asio::buffer(res.ToString()));
     }
 
