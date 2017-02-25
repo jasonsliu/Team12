@@ -78,6 +78,7 @@ std::unique_ptr<Request> Request::Parse(const std::string& raw_request){
 
 }
 
+
 std::string Request::uriHead() const
 {
 	std::cout<< "uri is: "<<m_uri <<std::endl;
@@ -91,18 +92,24 @@ std::string Request::uriHead() const
     std::cout<< "head of uri : /"<< head << std::endl;
     return "/"+head;
 }
+
+
 std::string Request::uriTail() const 
 {
 	std::string url = m_uri;
 	if (url.length() == 0){
-		return "";
+		
 	}
 	url.erase(0,1);
     size_t pos = url.find("/");
+	if (pos == std::string::npos){
+		return "";
+	}
     std::string tail = url.substr(pos);
     std::cout<< "tail of uri : "<< tail << std::endl;
     return tail;
 }
+
 
 std::string Request::raw_request() const {
     return m_raw_request;
@@ -295,5 +302,15 @@ RequestHandler::Status Handler_Static::HandleRequest(const Request& req, Respons
   	std::string content( (std::istreambuf_iterator<char>(ifs)),
                        (std::istreambuf_iterator<char>()) );
 	res->SetBody(content);
+	return OK;
+}
+
+
+RequestHandler::Status Handler_Status::HandleRequest(const Request& req, Response* res){
+	res->SetStatus(res->OK);
+	res->AddHeader("Content-type", "text/html");
+	std::string statusPage = Logger::Instance()->get_statusPage();
+	res->AddHeader("Content-length", std::to_string((int)statusPage.length()));
+	res->SetBody(statusPage);
 	return OK;
 }
