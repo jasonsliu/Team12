@@ -90,6 +90,9 @@ std::string Request::uriHead() const
     size_t pos = url.find("/");
     std::string head = url.substr(0, pos);
     std::cout<< "head of uri : /"<< head << std::endl;
+	if (head == ""){
+		return "/index";
+	}
     return "/"+head;
 }
 

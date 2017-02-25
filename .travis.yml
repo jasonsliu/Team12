@@ -1,5 +1,5 @@
 language: cpp
-script: make run_all_tests
+script: make compile_webserver
 addons:
  apt:
    packages:
