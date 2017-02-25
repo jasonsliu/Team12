@@ -1,7 +1,7 @@
 # !!! USE TABS NOT SPACES !!!
 
 GTEST_DIR=googletest/googletest
-CFLAGS = -std=c++11 -g
+CFLAGS = -std=c++0x -g
 
 
 compile_webserver:
