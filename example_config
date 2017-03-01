@@ -13,6 +13,11 @@ path /static2 StaticHandler {
 
 path /echo EchoHandler {}
 
+path /proxy ProxyHandler {
+	host www.ucla.com;
+	port 80;
+}
+
 default NotFoundHandler {}
 error ErrorHandler {}
 status /status StatusHandler {}

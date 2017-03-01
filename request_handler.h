@@ -180,4 +180,15 @@ class Handler_Status: public RequestHandler {
 		std::string uri;
 };
 
-#endif 
+class Handler_Proxy : public RequestHandler {
+	public:
+		Status Init(const std::string& uri_prefix, const NginxConfig& config);
+		Status HandleRequest(const Request& request, Response* response);
+
+	private:
+		std::string uri;
+		std::string host;
+		std::string port;
+};
+
+#endif

@@ -1,4 +1,7 @@
 #include "request_handler.h"
+#include <boost/asio.hpp>
+#include <boost/array.hpp>
+#include <string>
 
 std::unique_ptr<Request> Request::Parse(const std::string& raw_request){
 	
@@ -315,5 +318,70 @@ RequestHandler::Status Handler_Status::HandleRequest(const Request& req, Respons
 	std::string statusPage = Logger::Instance()->get_statusPage();
 	res->AddHeader("Content-length", std::to_string((int)statusPage.length()));
 	res->SetBody(statusPage);
+	return OK;
+}
+
+
+RequestHandler::Status Handler_Proxy::Init(const std::string& uri_prefix, const NginxConfig& config) {
+	this->uri = uri_prefix;
+
+	for (const auto& statement : config.statements_) {
+		const std::vector<std::string> tokens = statement->tokens_;
+		if (tokens[0] == "host"){
+			if (tokens.size() >= 2){ 
+				this->host = tokens[1];
+			}
+		}
+		else if (tokens[0] == "port"){
+			if (tokens.size() >= 2){
+				this->port = tokens[1];
+			}
+		}
+	}
+
+	return OK;
+}
+
+
+RequestHandler::Status Handler_Proxy::HandleRequest(const Request& req, Response* res){
+	std::string body;
+	try
+  {
+    boost::asio::io_service io_service;
+
+    boost::asio::ip::tcp::socket s(io_service);
+    boost::asio::ip::tcp::resolver resolver(io_service);
+    boost::asio::connect(s, resolver.resolve({host.c_str(), port.c_str()}));
+
+    // send request
+    char request[] = "GET / HTTP/1.1\r\n\r\n";
+    size_t request_length = std::strlen(request);
+    boost::asio::write(s, boost::asio::buffer(request, request_length));
+
+    // get response header
+    boost::asio::streambuf r;
+    boost::asio::read_until(s, r, "\r\n\r\n");
+    std::string header((std::istreambuf_iterator<char>(&r)), std::istreambuf_iterator<char>());
+    std::cout << "Header is: " << header << std::endl;
+
+    // get response
+		boost::system::error_code error;
+    while (boost::asio::read(s, r, error)) {
+    	if (error) break;
+    }
+    std::string bod((std::istreambuf_iterator<char>(&r)), std::istreambuf_iterator<char>());
+    std::string bod1 = header + bod;
+    body = bod1.substr(0, bod1.size() - 4);
+  }
+  catch (std::exception& e)
+  {
+    std::cerr << "Exception: " << e.what() << "\n";
+    std::cout << "Host is: " << host << std::endl;
+  }
+
+	res->SetStatus(res->OK);
+	res->AddHeader("Content-type", "text/html");
+	res->AddHeader("Content-length", std::to_string(body.length()));
+	res->SetBody(body);
 	return OK;
 }
