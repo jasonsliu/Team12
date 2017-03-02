@@ -31,7 +31,7 @@ class Server{
 public:
 	void run_server();
 	Server(const NginxConfig &config);
-
+	std::string find_longest_prefix(std::string uri); 
 
 private:
 	unsigned short port;
