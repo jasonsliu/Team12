@@ -79,6 +79,32 @@ Server::Server(const NginxConfig &config)
   this->uri2handler = sp.uri2handler;
 }
 
+//helpper function to find the longest prefix  
+// 
+std::string Server::find_longest_prefix(std::string uri) 
+{
+
+    std::string longest = "";
+    size_t last = uri.find_last_of("/");
+    std::string prefix = uri;
+    for (auto it : uri2handler) 
+    {
+        std::string map = it.first;
+
+        // if can find the map in the prefix and map is followed by "/" or map is the prefix 
+        if (prefix.find(map) == 0 && (prefix.find("/", map.length()) == map.length() || 
+            map.length() == prefix.length() || map == "/")) 
+        {
+            if (map.length() > longest.length()) 
+            {
+                longest = map;
+            }
+        }
+    }
+
+    std::cout << " The longest prefix is ::::::::: " << longest <<std::endl;
+    return longest;
+}
 
 void Server::session(socket_ptr sock)
 {
@@ -92,17 +118,19 @@ void Server::session(socket_ptr sock)
       char data[max_length];
       boost::system::error_code error;
       size_t length = sock->read_some(boost::asio::buffer(data), error);
-      Logger::Instance()->incNumOfReq();
       if (error == boost::asio::error::eof)
         break; // Connection closed cleanly by peer.
       else if (error)
         throw boost::system::system_error(error); // Some other error.
+
+      // change the logger 
+      Logger::Instance()->incNumOfReq();
       
       std::unique_ptr<Request> req = Request::Parse(data);
       Response res;
 
       RequestHandler::Status handle_stat;
-      auto it_uh = uri2handler.find(req->uriHead());
+      auto it_uh = uri2handler.find(find_longest_prefix(req->uri()));
       if (it_uh == uri2handler.end())
       {
         handle_stat = uri2handler["/404"]->HandleRequest(*req, &res);
