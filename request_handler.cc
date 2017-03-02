@@ -38,6 +38,8 @@ std::unique_ptr<Request> Request::Parse(const std::string& raw_request){
     }
 
     return_val->m_uri = url;
+   	std::cout<< "uri is: "<<return_val->m_uri <<std::endl;
+
     return_val->m_method = method;
     return_val->m_version = http_ver;
     return_val->m_raw_request = raw_request;
@@ -81,7 +83,6 @@ std::unique_ptr<Request> Request::Parse(const std::string& raw_request){
 
 std::string Request::uriHead() const
 {
-	std::cout<< "uri is: "<<m_uri <<std::endl;
 	std::string url = m_uri;
 	if (url.length() == 0){
 		return "/index";
@@ -232,6 +233,11 @@ RequestHandler::Status Handler_Static::Init(const std::string& uri_prefix, const
 		if (tokens[0] == "root"){
 			if (tokens.size() >= 2){ 
 				this->rootDir = tokens[1];
+				// remove the last / 
+				if (rootDir.back() == '/')
+				{
+					rootDir = rootDir.substr(0, rootDir.length()-1);
+				}
 			}
 		}
 	}
@@ -240,8 +246,29 @@ RequestHandler::Status Handler_Static::Init(const std::string& uri_prefix, const
 
 
 RequestHandler::Status Handler_Static::HandleRequest(const Request& req, Response* res){
-	std::string file_name = rootDir + req.uriTail();
-	int file_fd = open(file_name.c_str(), O_RDONLY);
+	
+
+	std::string file_path;
+
+
+	std::string file_name = req.uri();
+	// uri is member of handler(prefix), kind of confusing with the request's uri 
+	file_name.erase(0, uri.length());
+	if (file_name.empty() || file_name == "/") {
+        std::cout << "Empty file name" << std::endl;
+        return RequestHandler::NOT_FOUND;
+    }
+    if(file_name[0]!='/')
+    	file_name = "/" + file_name;
+    file_path = rootDir + file_name;
+    std::cout << " file name is  : "<< file_name << std::endl;
+
+    std::cout << " file path is  : "<< file_path << std::endl;
+
+
+
+
+	int file_fd = open(file_path.c_str(), O_RDONLY);
 	//can not open the file
 	if(file_fd == -1)
 	{
@@ -250,7 +277,7 @@ RequestHandler::Status Handler_Static::HandleRequest(const Request& req, Respons
 	struct stat file_info;
 	if(fstat(file_fd, &file_info) < 0)
 	{
-		std::cerr << "Can not retrive file info" << file_name << ".\n";
+		std::cerr << "Can not retrive file info" << file_path << ".\n";
 		return ERROR;
 	}
 
@@ -301,7 +328,7 @@ RequestHandler::Status Handler_Static::HandleRequest(const Request& req, Respons
 	res->AddHeader("Content-length", std::to_string(file_info.st_size));
 
 	// Read entire file
-	std::ifstream ifs(file_name);
+	std::ifstream ifs(file_path);
   	std::string content( (std::istreambuf_iterator<char>(ifs)),
                        (std::istreambuf_iterator<char>()) );
 	res->SetBody(content);
