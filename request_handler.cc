@@ -327,13 +327,13 @@ RequestHandler::Status Handler_Proxy::Init(const std::string& uri_prefix, const 
 
 	for (const auto& statement : config.statements_) {
 		const std::vector<std::string> tokens = statement->tokens_;
-		if (tokens[0] == "host"){
-			if (tokens.size() >= 2){ 
+		if (tokens[0] == "host") {
+			if (tokens.size() >= 2) {
 				this->host = tokens[1];
 			}
 		}
-		else if (tokens[0] == "port"){
-			if (tokens.size() >= 2){
+		else if (tokens[0] == "port") {
+			if (tokens.size() >= 2) {
 				this->port = tokens[1];
 			}
 		}
@@ -344,44 +344,288 @@ RequestHandler::Status Handler_Proxy::Init(const std::string& uri_prefix, const 
 
 
 RequestHandler::Status Handler_Proxy::HandleRequest(const Request& req, Response* res){
-	std::string body;
 	try
   {
     boost::asio::io_service io_service;
 
-    boost::asio::ip::tcp::socket s(io_service);
+    // connect to host
+    boost::asio::ip::tcp::socket sock(io_service);
     boost::asio::ip::tcp::resolver resolver(io_service);
-    boost::asio::connect(s, resolver.resolve({host.c_str(), port.c_str()}));
+    boost::asio::connect(sock, resolver.resolve({host.c_str(), port.c_str()}));
 
     // send request
-    char request[] = "GET / HTTP/1.1\r\n\r\n";
+    char request[] = "GET / HTTP/1.1\r\n\r\n"; // TODO: GET other pages besides index?
     size_t request_length = std::strlen(request);
-    boost::asio::write(s, boost::asio::buffer(request, request_length));
-
-    // get response header
-    boost::asio::streambuf r;
-    boost::asio::read_until(s, r, "\r\n\r\n");
-    std::string header((std::istreambuf_iterator<char>(&r)), std::istreambuf_iterator<char>());
-    std::cout << "Header is: " << header << std::endl;
+    boost::asio::write(sock, boost::asio::buffer(request, request_length));
 
     // get response
+    boost::asio::streambuf buffer;
 		boost::system::error_code error;
-    while (boost::asio::read(s, r, error)) {
+    while (boost::asio::read(sock, buffer, error)) {
     	if (error) break;
     }
-    std::string bod((std::istreambuf_iterator<char>(&r)), std::istreambuf_iterator<char>());
-    std::string bod1 = header + bod;
-    body = bod1.substr(0, bod1.size() - 4);
+    std::string raw_response((std::istreambuf_iterator<char>(&buffer)), std::istreambuf_iterator<char>());
+    // TODO: get rid of trailing "\r\n\r\n" from raw_response
+    ParseResponse(raw_response);
+    // TODO: check response_code. if 302, resend request (loop?)
   }
   catch (std::exception& e)
   {
-    std::cerr << "Exception: " << e.what() << "\n";
+    std::cerr << "Exception: " << e.what() << std::endl;
     std::cout << "Host is: " << host << std::endl;
   }
 
+  // TODO: pick response status based on response_code member variable
 	res->SetStatus(res->OK);
-	res->AddHeader("Content-type", "text/html");
-	res->AddHeader("Content-length", std::to_string(body.length()));
+  for (auto h : headers) {
+    res->AddHeader(h.first, h.second);
+  }
 	res->SetBody(body);
 	return OK;
+}
+
+RequestHandler::Status Handler_Proxy::ParseResponse(const std::string& raw_response) {
+  // clear response member variables
+  http_version = "";
+  response_code = 0;
+  headers.clear();
+  body.clear();
+
+  // parse raw response, character by character
+  for (char c : raw_response) {
+    result_type result = consume(c);
+    if (result == result_type::bad) {
+      return ERROR;
+    }
+  }
+  return OK;
+}
+
+Handler_Proxy::result_type Handler_Proxy::consume(char input) {
+  switch (state) {
+    case http_version_h: {
+      if (input == 'H') {
+        state = http_version_t_1;
+        return indeterminate;
+      } else {
+        return bad;
+      }
+    }
+    case http_version_t_1: {
+      if (input == 'T') {
+        state = http_version_t_2;
+        return indeterminate;
+      } else {
+        return bad;
+      }
+    }
+    case http_version_t_2: {
+      if (input == 'T') {
+        state = http_version_p;
+        return indeterminate;
+      } else {
+        return bad;
+      }
+    }
+    case http_version_p: {
+      if (input == 'P') {
+        state = http_version_slash;
+        return indeterminate;
+      } else {
+        return bad;
+      }
+    }
+    case http_version_slash: {
+      if (input == '/') {
+        state = http_version_major_start;
+        return indeterminate;
+      } else {
+        return bad;
+      }
+    }
+    case http_version_major_start: {
+      if (is_digit(input)) {
+        http_version.push_back(input);
+        state = http_version_major;
+        return indeterminate;
+      } else {
+        return bad;
+      }
+    }
+    case http_version_major: {
+      if (input == '.') {
+        http_version.push_back(input);
+        state = http_version_minor_start;
+        return indeterminate;
+      } else if (is_digit(input)) {
+        http_version.push_back(input);
+        return indeterminate;
+      } else {
+        return bad;
+      }
+    }
+    case http_version_minor_start: {
+      if (is_digit(input)) {
+        http_version.push_back(input);
+        state = http_version_minor;
+        return indeterminate;
+      } else {
+        return bad;
+      }
+    }
+    case http_version_minor: {
+      if (input == ' ') {
+        state = http_code_1;
+        return indeterminate;
+      } else if (is_digit(input)) {
+        http_version.push_back(input);
+        return indeterminate;
+      } else {
+        return bad;
+      }
+    }
+    case http_code_1: {
+      if (is_digit(input)) {
+        response_code = input - '0';
+        state = http_code_2;
+        return indeterminate;
+      } else {
+        return bad;
+      }
+    }
+    case http_code_2: {
+      if (is_digit(input)) {
+        response_code = response_code * 10 + (input - '0');
+        state = http_code_3;
+        return indeterminate;
+      } else {
+        return bad;
+      }
+    }
+    case http_code_3: {
+      if (is_digit(input)) {
+        response_code = response_code * 10 + (input - '0');
+        state = expecting_newline_1;
+        return indeterminate;
+      } else {
+        return bad;
+      }
+    }
+    case expecting_newline_1: {
+      if (input == '\n') {
+        state = header_line_start;
+        return indeterminate;
+      } else {
+        return indeterminate; // ignore status code message
+      }
+    }
+    case header_line_start: {
+      if (input == '\r') {
+        state = expecting_newline_3;
+        return indeterminate;
+      } else if (!headers.empty() && (input == ' ' || input == '\t')) {
+        state = header_lws;
+        return indeterminate;
+      } else if (!is_char(input) || is_ctl(input) || is_tspecial(input)) {
+        return bad;
+      } else {
+        headers.push_back(std::pair<std::string, std::string>());
+        headers.back().first.push_back(input);
+        state = header_name;
+        return indeterminate;
+      }
+    }
+    case header_lws: {
+      if (input == '\r') {
+        state = expecting_newline_2;
+        return indeterminate;
+      } else if (input == ' ' || input == '\t') {
+        return indeterminate;
+      } else if (is_ctl(input)) {
+        return bad;
+      } else {
+        state = header_value;
+        headers.back().second.push_back(input);
+        return indeterminate;
+      }
+    }
+    case header_name: {
+      if (input == ':') {
+        state = space_before_header_value;
+        return indeterminate;
+      } else if (!is_char(input) || is_ctl(input) || is_tspecial(input)) {
+        return bad;
+      } else {
+        headers.back().first.push_back(input);
+        return indeterminate;
+      }
+    }
+    case space_before_header_value: {
+      if (input == ' ') {
+        state = header_value;
+        return indeterminate;
+      } else {
+        return bad;
+      }
+    }
+    case header_value: {
+      if (input == '\r') {
+        state = expecting_newline_2;
+        return indeterminate;
+      } else if (is_ctl(input)) {
+        return bad;
+      } else {
+        headers.back().second.push_back(input);
+        return indeterminate;
+      }
+    }
+    case expecting_newline_2: {
+      if (input == '\n') {
+        state = header_line_start;
+        return indeterminate;
+      } else {
+        return bad;
+      }
+    }
+    case expecting_newline_3: {
+      if (input == '\n') {
+        state = body_state;
+        return good;
+      } else {
+        return bad;
+      }
+    }
+    case body_state: {
+      // place the rest of the text after headers into the body
+      body.push_back(input);
+      return indeterminate;
+    }
+    default: {
+      return bad;
+    }
+  }
+}
+
+bool Handler_Proxy::is_char(int c) {
+  return c >= 0 && c <= 127;
+}
+
+bool Handler_Proxy::is_ctl(int c) {
+  return (c >= 0 && c <= 31) || (c == 127);
+}
+
+bool Handler_Proxy::is_tspecial(int c) {
+  switch (c) {
+    case '(': case ')': case '<': case '>': case '@':
+    case ',': case ';': case ':': case '\\': case '"':
+    case '/': case '[': case ']': case '?': case '=':
+    case '{': case '}': case ' ': case '\t':
+      return true;
+    default:
+      return false;
+  }
+}
+
+bool Handler_Proxy::is_digit(int c) {
+  return c >= '0' && c <= '9';
 }
