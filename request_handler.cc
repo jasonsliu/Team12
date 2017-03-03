@@ -350,68 +350,96 @@ RequestHandler::Status Handler_Status::HandleRequest(const Request& req, Respons
 
 
 RequestHandler::Status Handler_Proxy::Init(const std::string& uri_prefix, const NginxConfig& config) {
-	this->uri = uri_prefix;
+  this->uri = uri_prefix;
 
-	for (const auto& statement : config.statements_) {
-		const std::vector<std::string> tokens = statement->tokens_;
-		if (tokens[0] == "host") {
-			if (tokens.size() >= 2) {
-				this->host = tokens[1];
-			}
-		}
-		else if (tokens[0] == "port") {
-			if (tokens.size() >= 2) {
-				this->port = tokens[1];
-			}
-		}
-	}
+  for (const auto& statement : config.statements_) {
+    const std::vector<std::string> tokens = statement->tokens_;
+    if (tokens[0] == "host") {
+      if (tokens.size() >= 2) {
+        this->host = tokens[1];
+      }
+    }
+    else if (tokens[0] == "port") {
+      if (tokens.size() >= 2) {
+        this->port = tokens[1];
+      }
+    }
+  }
 
-	return OK;
+  return OK;
 }
 
 
 RequestHandler::Status Handler_Proxy::HandleRequest(const Request& req, Response* res){
-	try
-  {
-    boost::asio::io_service io_service;
-
+  while (true) {
     // connect to host
-    boost::asio::ip::tcp::socket sock(io_service);
+    boost::asio::io_service io_service;
     boost::asio::ip::tcp::resolver resolver(io_service);
-    boost::asio::connect(sock, resolver.resolve({host.c_str(), port.c_str()}));
+    boost::asio::ip::tcp::resolver::query query(host, port);
+    boost::asio::ip::tcp::resolver::iterator endpoint_iterator;
+    try {
+      endpoint_iterator = resolver.resolve(query);
+    } catch (std::exception& e) {
+      std::cerr << "Exception: " << e.what() << std::endl;
+      Handler_500 handler_500;
+      handler_500.HandleRequest(req, res);
+      return OK;
+    }
+    boost::asio::ip::tcp::socket sock(io_service);
+    boost::asio::connect(sock, endpoint_iterator);
 
-    // send request
-    char request[] = "GET / HTTP/1.1\r\n\r\n"; // TODO: GET other pages besides index?
-    size_t request_length = std::strlen(request);
-    boost::asio::write(sock, boost::asio::buffer(request, request_length));
+    // get relative URI
+    std::string request_uri = req.uri();
+    std::string relative_uri;
+    if (request_uri != uri 
+        && request_uri.size() > uri.size() 
+        && request_uri.substr(0, uri.size()) == uri) {
+      relative_uri = request_uri.substr(uri.size());
+    } else {
+      relative_uri = request_uri;
+    }
 
-    // get response
+    // send request to host
+    std::string request = "GET " + relative_uri + " HTTP/1.1\r\n"
+                        + "Host: " + host + ":" + port + "\r\n\r\n";
+    std::cerr << "---SENT REQUEST---" << std::endl << request << "---END REQUEST--" << std::endl;
+    boost::asio::write(sock, 
+                       boost::asio::buffer(request.c_str(), request.length()));
+
+    // get response from host
     boost::asio::streambuf buffer;
-		boost::system::error_code error;
+    boost::system::error_code error;
     while (boost::asio::read(sock, buffer, error)) {
-    	if (error) break;
+      if (error) break;
     }
     std::string raw_response((std::istreambuf_iterator<char>(&buffer)), std::istreambuf_iterator<char>());
-    // TODO: get rid of trailing "\r\n\r\n" from raw_response
+    // get rid of trailing "\r\n\r\n" from raw_response
+    raw_response = raw_response.substr(0, raw_response.size() - 4);
     ParseResponse(raw_response);
-    // TODO: check response_code. if 302, resend request (loop?)
-  }
-  catch (std::exception& e)
-  {
-    std::cerr << "Exception: " << e.what() << std::endl;
-    std::cout << "Host is: " << host << std::endl;
+
+    if (response_code == 301 || response_code == 302) { // redirect. try new host
+      for (auto h : headers) {
+        if (h.first == "Location") {
+          host = h.second;
+        }
+      }
+    } else {
+  		std::cerr << "sent response for " << relative_uri << std::endl;
+      break;
+    }
   }
 
-  // TODO: pick response status based on response_code member variable
-	res->SetStatus(res->OK);
+  res->SetStatus(static_cast<Response::ResponseCode>(response_code));
   for (auto h : headers) {
     res->AddHeader(h.first, h.second);
   }
-	res->SetBody(body);
-	return OK;
+  res->SetBody(body);
+
+  return OK;
 }
 
-RequestHandler::Status Handler_Proxy::ParseResponse(const std::string& raw_response) {
+
+RequestHandler::Status Handler_Proxy::ParseResponse(const std::string& raw_response){
   // clear response member variables
   http_version = "";
   response_code = 0;
@@ -428,7 +456,8 @@ RequestHandler::Status Handler_Proxy::ParseResponse(const std::string& raw_respo
   return OK;
 }
 
-Handler_Proxy::result_type Handler_Proxy::consume(char input) {
+
+Handler_Proxy::result_type Handler_Proxy::consume(char input){
   switch (state) {
     case http_version_h: {
       if (input == 'H') {
@@ -633,15 +662,18 @@ Handler_Proxy::result_type Handler_Proxy::consume(char input) {
   }
 }
 
-bool Handler_Proxy::is_char(int c) {
+
+bool Handler_Proxy::is_char(int c){
   return c >= 0 && c <= 127;
 }
 
-bool Handler_Proxy::is_ctl(int c) {
+
+bool Handler_Proxy::is_ctl(int c){
   return (c >= 0 && c <= 31) || (c == 127);
 }
 
-bool Handler_Proxy::is_tspecial(int c) {
+
+bool Handler_Proxy::is_tspecial(int c){
   switch (c) {
     case '(': case ')': case '<': case '>': case '@':
     case ',': case ';': case ':': case '\\': case '"':
@@ -653,6 +685,7 @@ bool Handler_Proxy::is_tspecial(int c) {
   }
 }
 
-bool Handler_Proxy::is_digit(int c) {
+
+bool Handler_Proxy::is_digit(int c){
   return c >= '0' && c <= '9';
 }
