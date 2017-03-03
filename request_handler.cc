@@ -372,6 +372,10 @@ RequestHandler::Status Handler_Proxy::Init(const std::string& uri_prefix, const 
 
 
 RequestHandler::Status Handler_Proxy::HandleRequest(const Request& req, Response* res){
+	if (res == nullptr) {
+		return ERROR;
+	}
+	
   while (true) {
     // connect to host
     boost::asio::io_service io_service;
