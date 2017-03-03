@@ -394,15 +394,15 @@ RequestHandler::Status Handler_Proxy::HandleRequest(const Request& req, Response
     if (request_uri != uri 
         && request_uri.size() > uri.size() 
         && request_uri.substr(0, uri.size()) == uri) {
-      relative_uri = request_uri.substr(uri.size());
+      relative_uri = request_uri.substr(uri.size() - 1);
     } else {
       relative_uri = request_uri;
     }
 
     // send request to host
     std::string request = "GET " + relative_uri + " HTTP/1.1\r\n"
-                        + "Host: " + host + ":" + port + "\r\n\r\n";
-    std::cerr << "---SENT REQUEST---" << std::endl << request << "---END REQUEST--" << std::endl;
+                        + "Host: " + host + ":" + port + "\r\n"
+                        + "Connection: close\r\n\r\n";
     boost::asio::write(sock, 
                        boost::asio::buffer(request.c_str(), request.length()));
 
