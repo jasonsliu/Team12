@@ -10,8 +10,12 @@ path /static StaticHandler {
   root ../testfiles;
 }
 
-
 path /echo EchoHandler {}
+
+path / ProxyHandler {
+	host www.ucla.edu;
+	port 80;
+}
 
 default NotFoundHandler {}
 error ErrorHandler {}
