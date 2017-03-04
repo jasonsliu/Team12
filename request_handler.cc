@@ -449,6 +449,7 @@ RequestHandler::Status Handler_Proxy::ParseResponse(const std::string& raw_respo
   response_code = 0;
   headers.clear();
   body.clear();
+  state = http_version_h;
 
   // parse raw response, character by character
   for (char c : raw_response) {
